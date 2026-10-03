@@ -1,10 +1,65 @@
-### Create a pitch
-POST http://localhost:8080/api/pitches
+### Pitsch backend — quick manual requests (VS Code REST Client / IntelliJ HTTP client)
+@base = http://localhost:8080/api
+
+### Health (public): is the AI service reachable?
+GET {{base}}/health
+
+### Log in as the demo user (created on first start)
+# @name login
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{ "email": "demo@pitsch.com", "password": "pitsch123" }
+
+###
+@token = {{login.response.body.token}}
+
+### Submit a pitch email (attachments: base64, optional)
+# @name email
+POST {{base}}/emails/process
+Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-    "title": "AI Deal Flow",
-    "description": "An AI system that helps investors manage and analyze startup pitches.",
-    "founderName": "Ayush",
-    "email": "ayush@example.com"
+  "sender": "ananya@krishiai.in",
+  "senderName": "Ananya Rao",
+  "subject": "Krishi AI - raising our $2M seed",
+  "body": "Hi, I'm Ananya, CEO of Krishi AI. 12,000 farmers onboarded across 3 states; Rs 1.2 Cr ARR. Raising $2M seed.",
+  "threadId": "thread-krishi-1"
 }
+
+###
+@workflowId = {{email.response.body.workflowId}}
+
+### Poll the workflow (status, availableActions, agents, brief, slots, draft)
+GET {{base}}/workflows/{{workflowId}}
+Authorization: Bearer {{token}}
+
+### Handle the pitch (runs Document -> Research -> Verification -> Analysis)
+POST {{base}}/workflows/{{workflowId}}/action
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "action": "COMPLETE_WORKFLOW" }
+
+### Plan a meeting
+POST {{base}}/workflows/{{workflowId}}/action
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "action": "PLAN_MEETING" }
+
+### Suggested slots
+GET {{base}}/calendar/availability?workflowId={{workflowId}}
+Authorization: Bearer {{token}}
+
+### Draft an email to the founder
+POST {{base}}/workflows/{{workflowId}}/action
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "action": "PLAN_EMAIL_RESPONSE" }
+
+### Notifications
+GET {{base}}/notifications
+Authorization: Bearer {{token}}

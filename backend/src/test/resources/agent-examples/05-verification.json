@@ -1,0 +1,166 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/agents/verification",
+    "body": {
+      "executionId": "102:verification:5",
+      "traceId": "trace-102",
+      "input": {
+        "pitchId": "7",
+        "companyName": "Krishi AI",
+        "claims": [
+          {
+            "claimId": "C1",
+            "text": "The pitch claims 12,000 farmers onboarded.",
+            "category": "TRACTION",
+            "quote": "12,000 farmers onboarded across 3 states",
+            "sourceRef": "d1:p2",
+            "quoteVerified": true,
+            "provenance": "PITCH"
+          },
+          {
+            "claimId": "C2",
+            "text": "The pitch claims market leadership.",
+            "category": "COMPETITION",
+            "quote": "We are the market leader in AI agri-advisory",
+            "sourceRef": "d1:p3",
+            "quoteVerified": true,
+            "provenance": "PITCH"
+          },
+          {
+            "claimId": "C3",
+            "text": "The pitch claims Rs 1.2 Cr ARR.",
+            "category": "FINANCIAL",
+            "quote": "Revenue: Rs 1.2 Cr ARR, growing 40% QoQ",
+            "sourceRef": "d1:p2",
+            "quoteVerified": true,
+            "provenance": "PITCH"
+          }
+        ],
+        "evidence": [
+          {
+            "evidenceId": "E1",
+            "sourceId": "S1",
+            "topic": "FUNDING",
+            "statement": "TechCrunch reports a $1.5M seed round.",
+            "excerpt": "has raised $1.5M in a seed round led by Omnivore",
+            "claimIds": [],
+            "sourceType": "EXTERNAL",
+            "provenance": "EXTERNAL",
+            "sourceUrl": "https://techcrunch.com/2026/05/krishi-ai-seed",
+            "sourceTitle": "Krishi AI raises seed",
+            "publishedAt": "2026-05-10T00:00:00Z",
+            "retrievedAt": "2026-10-03T00:00:00Z",
+            "possiblyOutdated": false
+          },
+          {
+            "evidenceId": "E2",
+            "sourceId": "S1",
+            "topic": "TRACTION",
+            "statement": "TechCrunch reports about 9,000 farmers.",
+            "excerpt": "it serves about 9,000 farmers in Karnataka and Maharashtra",
+            "claimIds": [
+              "C1"
+            ],
+            "sourceType": "EXTERNAL",
+            "provenance": "EXTERNAL",
+            "sourceUrl": "https://techcrunch.com/2026/05/krishi-ai-seed",
+            "sourceTitle": "Krishi AI raises seed",
+            "publishedAt": "2026-05-10T00:00:00Z",
+            "retrievedAt": "2026-10-03T00:00:00Z",
+            "possiblyOutdated": false
+          },
+          {
+            "evidenceId": "E3",
+            "sourceId": "S2",
+            "topic": "TRACTION",
+            "statement": "Company site says 12,000+ farmers.",
+            "excerpt": "helps over 12,000 farmers make better crop decisions",
+            "claimIds": [
+              "C1"
+            ],
+            "sourceType": "COMPANY",
+            "provenance": "COMPANY",
+            "sourceUrl": "https://www.krishiai.in/about",
+            "sourceTitle": "About Krishi AI",
+            "publishedAt": null,
+            "retrievedAt": "2026-10-03T00:00:00Z",
+            "possiblyOutdated": false
+          }
+        ]
+      }
+    }
+  },
+  "response": {
+    "success": true,
+    "agent": "VERIFICATION_AGENT",
+    "data": {
+      "pitchId": "7",
+      "results": [
+        {
+          "claimId": "C1",
+          "claimText": "The pitch claims 12,000 farmers onboarded.",
+          "category": "TRACTION",
+          "status": "PARTIALLY_VERIFIED",
+          "independentlyVerified": true,
+          "supportingEvidenceIds": [
+            "E2",
+            "E3"
+          ],
+          "contradictingEvidenceIds": [],
+          "finding": "TechCrunch reports about 9,000 farmers versus 12,000 claimed.",
+          "confidence": 0.85,
+          "evidenceOutdated": false,
+          "notes": []
+        },
+        {
+          "claimId": "C2",
+          "claimText": "The pitch claims market leadership.",
+          "category": "COMPETITION",
+          "status": "NOT_FOUND",
+          "independentlyVerified": false,
+          "supportingEvidenceIds": [],
+          "contradictingEvidenceIds": [],
+          "finding": "No comparative source.",
+          "confidence": 0.9,
+          "evidenceOutdated": false,
+          "notes": []
+        },
+        {
+          "claimId": "C3",
+          "claimText": "The pitch claims Rs 1.2 Cr ARR.",
+          "category": "FINANCIAL",
+          "status": "NOT_FOUND",
+          "independentlyVerified": false,
+          "supportingEvidenceIds": [],
+          "contradictingEvidenceIds": [],
+          "finding": "No revenue source.",
+          "confidence": 0.9,
+          "evidenceOutdated": false,
+          "notes": []
+        }
+      ],
+      "summary": {
+        "VERIFIED": 0,
+        "PARTIALLY_VERIFIED": 1,
+        "UNVERIFIED": 0,
+        "CONTRADICTED": 0,
+        "NOT_FOUND": 2
+      },
+      "needsHumanReview": false,
+      "reviewReasons": [],
+      "warnings": []
+    },
+    "error": null,
+    "meta": {
+      "executionId": "102:verification:5",
+      "traceId": "trace-102",
+      "schemaVersion": "1.0",
+      "model": "fake-model",
+      "attempts": 1,
+      "promptTokens": 100,
+      "completionTokens": 20,
+      "latencyMs": 0
+    }
+  }
+}

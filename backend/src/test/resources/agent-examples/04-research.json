@@ -1,0 +1,222 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/agents/research",
+    "body": {
+      "executionId": "102:research:4",
+      "traceId": "trace-102",
+      "input": {
+        "pitchId": "7",
+        "companyName": "Krishi AI",
+        "companyDomain": "krishiai.in",
+        "founders": [
+          "Ananya Rao"
+        ],
+        "sector": "AgriTech",
+        "claims": [
+          {
+            "claimId": "C1",
+            "text": "The pitch claims 12,000 farmers onboarded.",
+            "category": "TRACTION",
+            "quote": "12,000 farmers onboarded across 3 states",
+            "sourceRef": "d1:p2",
+            "quoteVerified": true,
+            "provenance": "PITCH"
+          },
+          {
+            "claimId": "C2",
+            "text": "The pitch claims market leadership.",
+            "category": "COMPETITION",
+            "quote": "We are the market leader in AI agri-advisory",
+            "sourceRef": "d1:p3",
+            "quoteVerified": true,
+            "provenance": "PITCH"
+          },
+          {
+            "claimId": "C3",
+            "text": "The pitch claims Rs 1.2 Cr ARR.",
+            "category": "FINANCIAL",
+            "quote": "Revenue: Rs 1.2 Cr ARR, growing 40% QoQ",
+            "sourceRef": "d1:p2",
+            "quoteVerified": true,
+            "provenance": "PITCH"
+          }
+        ]
+      }
+    }
+  },
+  "response": {
+    "success": true,
+    "agent": "RESEARCH_AGENT",
+    "data": {
+      "pitchId": "7",
+      "companyName": "Krishi AI",
+      "searchProvider": "fake",
+      "sources": [
+        {
+          "sourceId": "S1",
+          "url": "https://techcrunch.com/2026/05/krishi-ai-seed",
+          "title": "Krishi AI raises seed",
+          "domain": "techcrunch.com",
+          "sourceType": "EXTERNAL",
+          "publishedAt": "2026-05-10T00:00:00Z",
+          "retrievedAt": "2026-10-03T00:00:00Z",
+          "possiblyOutdated": false,
+          "query": "\"Krishi AI\" funding raised investors"
+        },
+        {
+          "sourceId": "S2",
+          "url": "https://www.krishiai.in/about",
+          "title": "About Krishi AI",
+          "domain": "krishiai.in",
+          "sourceType": "COMPANY",
+          "publishedAt": null,
+          "retrievedAt": "2026-10-03T00:00:00Z",
+          "possiblyOutdated": false,
+          "query": "\"Krishi AI\" funding raised investors"
+        },
+        {
+          "sourceId": "S3",
+          "url": "https://yourstory.com/2023/krishi-ai",
+          "title": "Agritech startups to watch",
+          "domain": "yourstory.com",
+          "sourceType": "EXTERNAL",
+          "publishedAt": "2023-01-05T00:00:00Z",
+          "retrievedAt": "2026-10-03T00:00:00Z",
+          "possiblyOutdated": true,
+          "query": "\"Krishi AI\" funding raised investors"
+        }
+      ],
+      "evidence": [
+        {
+          "evidenceId": "E1",
+          "sourceId": "S1",
+          "topic": "FUNDING",
+          "statement": "TechCrunch reports a $1.5M seed round.",
+          "excerpt": "has raised $1.5M in a seed round led by Omnivore",
+          "claimIds": [],
+          "sourceType": "EXTERNAL",
+          "provenance": "EXTERNAL",
+          "sourceUrl": "https://techcrunch.com/2026/05/krishi-ai-seed",
+          "sourceTitle": "Krishi AI raises seed",
+          "publishedAt": "2026-05-10T00:00:00Z",
+          "retrievedAt": "2026-10-03T00:00:00Z",
+          "possiblyOutdated": false
+        },
+        {
+          "evidenceId": "E2",
+          "sourceId": "S1",
+          "topic": "TRACTION",
+          "statement": "TechCrunch reports about 9,000 farmers.",
+          "excerpt": "it serves about 9,000 farmers in Karnataka and Maharashtra",
+          "claimIds": [
+            "C1"
+          ],
+          "sourceType": "EXTERNAL",
+          "provenance": "EXTERNAL",
+          "sourceUrl": "https://techcrunch.com/2026/05/krishi-ai-seed",
+          "sourceTitle": "Krishi AI raises seed",
+          "publishedAt": "2026-05-10T00:00:00Z",
+          "retrievedAt": "2026-10-03T00:00:00Z",
+          "possiblyOutdated": false
+        },
+        {
+          "evidenceId": "E3",
+          "sourceId": "S2",
+          "topic": "TRACTION",
+          "statement": "Company site says 12,000+ farmers.",
+          "excerpt": "helps over 12,000 farmers make better crop decisions",
+          "claimIds": [
+            "C1"
+          ],
+          "sourceType": "COMPANY",
+          "provenance": "COMPANY",
+          "sourceUrl": "https://www.krishiai.in/about",
+          "sourceTitle": "About Krishi AI",
+          "publishedAt": null,
+          "retrievedAt": "2026-10-03T00:00:00Z",
+          "possiblyOutdated": false
+        }
+      ],
+      "competitors": [
+        {
+          "name": "FarmWise",
+          "description": "AI crop advisory",
+          "sourceIds": [
+            "S3"
+          ]
+        }
+      ],
+      "queriesRun": [
+        {
+          "query": "\"Krishi AI\" AgriTech",
+          "topic": "COMPANY",
+          "round": 1,
+          "resultCount": 0,
+          "error": null
+        },
+        {
+          "query": "\"Krishi AI\" funding raised investors",
+          "topic": "FUNDING",
+          "round": 1,
+          "resultCount": 4,
+          "error": null
+        },
+        {
+          "query": "\"Krishi AI\" competitors alternatives",
+          "topic": "COMPETITORS",
+          "round": 1,
+          "resultCount": 0,
+          "error": null
+        },
+        {
+          "query": "\"Ananya Rao\" \"Krishi AI\"",
+          "topic": "FOUNDERS",
+          "round": 1,
+          "resultCount": 0,
+          "error": null
+        },
+        {
+          "query": "\"Krishi AI\" news",
+          "topic": "NEWS",
+          "round": 1,
+          "resultCount": 0,
+          "error": null
+        },
+        {
+          "query": "Krishi AI farmers",
+          "topic": "TRACTION",
+          "round": 1,
+          "resultCount": 0,
+          "error": null
+        }
+      ],
+      "gaps": [
+        "No independent source for revenue figures"
+      ],
+      "claimsWithoutEvidence": [
+        "C2",
+        "C3"
+      ],
+      "droppedEvidenceCount": 3,
+      "ignoredSourceCount": 1,
+      "needsHumanReview": false,
+      "reviewReasons": [],
+      "warnings": [
+        "1 sources were about a different entity and were ignored.",
+        "Some evidence comes from sources older than the freshness window."
+      ]
+    },
+    "error": null,
+    "meta": {
+      "executionId": "102:research:4",
+      "traceId": "trace-102",
+      "schemaVersion": "1.0",
+      "model": "fake-model",
+      "attempts": 2,
+      "promptTokens": 200,
+      "completionTokens": 40,
+      "latencyMs": 1
+    }
+  }
+}

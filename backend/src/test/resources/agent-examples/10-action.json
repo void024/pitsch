@@ -1,0 +1,168 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/agents/action",
+    "body": {
+      "executionId": "102:action:10",
+      "traceId": "trace-102",
+      "input": {
+        "workflowId": "102",
+        "event": "MEETING_APPROVED",
+        "emailId": "email_1",
+        "pitch": {
+          "pitchId": "7",
+          "companyName": "Krishi AI",
+          "founderEmail": "ananya@krishiai.in"
+        },
+        "meeting": {
+          "start": "2026-10-07T09:30:00+05:30",
+          "end": "2026-10-07T10:00:00+05:30"
+        },
+        "approval": {
+          "approvedBy": "user_12",
+          "approvedAt": "2026-10-05T10:00:00+05:30"
+        }
+      }
+    }
+  },
+  "response": {
+    "success": true,
+    "agent": "ACTION_AGENT",
+    "data": {
+      "workflowId": "102",
+      "event": "MEETING_APPROVED",
+      "actions": [
+        {
+          "actionId": "85a6f17ed00fea97",
+          "type": "CALENDAR_CREATE_EVENT",
+          "target": "calendar:primary",
+          "payload": {
+            "event": {
+              "summary": "Pitch meeting: Krishi AI",
+              "description": "Pitch meeting with Krishi AI.\nScheduled via Pitsch.",
+              "start": {
+                "dateTime": "2026-10-07T09:30:00+05:30",
+                "timeZone": "Asia/Kolkata"
+              },
+              "end": {
+                "dateTime": "2026-10-07T10:00:00+05:30",
+                "timeZone": "Asia/Kolkata"
+              },
+              "attendees": [
+                {
+                  "email": "ananya@krishiai.in"
+                }
+              ],
+              "reminders": {
+                "useDefault": true
+              },
+              "conferenceData": {
+                "createRequest": {
+                  "requestId": "102-meet",
+                  "conferenceSolutionKey": {
+                    "type": "hangoutsMeet"
+                  }
+                }
+              }
+            },
+            "queryParams": {
+              "sendUpdates": "all",
+              "conferenceDataVersion": 1
+            }
+          },
+          "requiresApproval": true,
+          "approved": true,
+          "dependsOn": [],
+          "reason": "Investor approved a meeting slot; invite goes to the founder."
+        },
+        {
+          "actionId": "8a8acd694594cec9",
+          "type": "GMAIL_REMOVE_LABELS",
+          "target": "gmail:message:email_1",
+          "payload": {
+            "labels": [
+              "Pitsch/Needs Review"
+            ],
+            "scope": "message"
+          },
+          "requiresApproval": false,
+          "approved": true,
+          "dependsOn": [
+            "85a6f17ed00fea97"
+          ],
+          "reason": "Meeting scheduled."
+        },
+        {
+          "actionId": "100577a4d63fe22f",
+          "type": "GMAIL_ADD_LABELS",
+          "target": "gmail:message:email_1",
+          "payload": {
+            "labels": [
+              "Pitsch/Meeting Scheduled"
+            ],
+            "scope": "message",
+            "createIfMissing": true
+          },
+          "requiresApproval": false,
+          "approved": true,
+          "dependsOn": [
+            "85a6f17ed00fea97"
+          ],
+          "reason": "Meeting scheduled."
+        },
+        {
+          "actionId": "712d57263a5ab1bd",
+          "type": "SHEETS_UPSERT_ROW",
+          "target": "sheet:pipeline",
+          "payload": {
+            "keyColumn": "Pitch ID",
+            "columns": [
+              "Pitch ID",
+              "Company",
+              "Sector",
+              "Stage",
+              "Founder",
+              "Founder Email",
+              "Ask",
+              "Website",
+              "Status",
+              "Verified",
+              "Partially verified",
+              "Unverified / not found",
+              "Contradicted",
+              "Open questions",
+              "Brief",
+              "Meeting",
+              "Last updated"
+            ],
+            "values": {
+              "Pitch ID": "7",
+              "Company": "Krishi AI",
+              "Founder Email": "ananya@krishiai.in",
+              "Status": "MEETING_SCHEDULED",
+              "Last updated": "2026-10-03T00:00:00+00:00",
+              "Meeting": "2026-10-07T09:30:00+05:30"
+            }
+          },
+          "requiresApproval": false,
+          "approved": true,
+          "dependsOn": [],
+          "reason": "Keep the deal pipeline sheet current."
+        }
+      ],
+      "blockedActionIds": [],
+      "warnings": []
+    },
+    "error": null,
+    "meta": {
+      "executionId": "102:action:10",
+      "traceId": "trace-102",
+      "schemaVersion": "1.0",
+      "model": null,
+      "attempts": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "latencyMs": 0
+    }
+  }
+}
