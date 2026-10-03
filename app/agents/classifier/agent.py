@@ -1,6 +1,4 @@
-import logging
-import time
-
+from app.agents.base import execute
 from app.agents.classifier.matcher import score_candidates
 from app.agents.classifier.prompt import SYSTEM_PROMPT, build_user_prompt
 from app.agents.classifier.schemas import (
@@ -12,12 +10,10 @@ from app.agents.classifier.schemas import (
     NotPitchType,
     RecommendedAction,
 )
-from app.core.errors import AgentException, ErrorCode
 from app.core.llm import CallStats, LLMClient, call_structured
-from app.schemas.common import AgentError, AgentMeta, AgentRequest, AgentResult
+from app.schemas.common import AgentRequest, AgentResult
 
 AGENT_NAME = "EMAIL_CLASSIFIER"
-logger = logging.getLogger(__name__)
 
 PITCH_RELATED = {EmailCategory.NEW_PITCH, EmailCategory.PITCH_FOLLOW_UP, EmailCategory.PITCH_UPDATE}
 EXISTING_PITCH = {EmailCategory.PITCH_FOLLOW_UP, EmailCategory.PITCH_UPDATE}
@@ -62,28 +58,8 @@ class EmailClassifierAgent:
         self.retry_backoff_seconds = retry_backoff_seconds
 
     def run(self, request: AgentRequest[EmailInput]) -> AgentResult[ClassifierOutput]:
-        started = time.monotonic()
-        stats = CallStats()
-        ctx = {"agent": AGENT_NAME, "trace_id": request.trace_id, "execution_id": request.execution_id}
-        logger.info("agent started", extra={**ctx, "event": "agent_started"})
-
-        try:
-            data = self._classify(request.input, stats)
-            logger.info("agent completed",
-                        extra={**ctx, "event": "agent_completed", "category": data.category.value})
-            return AgentResult[ClassifierOutput](
-                success=True, agent=AGENT_NAME, data=data, meta=self._meta(request, stats, started)
-            )
-        except AgentException as exc:
-            logger.warning("agent failed", extra={**ctx, "event": "agent_failed", "error_code": exc.code.value})
-            error = AgentError(code=exc.code, message=exc.message, retryable=exc.retryable)
-        except Exception:
-            logger.exception("unexpected classifier error", extra={**ctx, "event": "agent_crashed"})
-            error = AgentError(code=ErrorCode.INTERNAL_ERROR, message="Unexpected classifier error", retryable=False)
-
-        return AgentResult[ClassifierOutput](
-            success=False, agent=AGENT_NAME, error=error, meta=self._meta(request, stats, started)
-        )
+        return execute(AGENT_NAME, request, ClassifierOutput, self._classify,
+                       log_fields=lambda d: {"category": d.category.value})
 
     # ------------------------------------------------------------------
 
@@ -171,16 +147,4 @@ class EmailClassifierAgent:
             warnings=warnings,
             reason=raw.reason,
             match_signals=signals,
-        )
-
-    @staticmethod
-    def _meta(request: AgentRequest, stats: CallStats, started: float) -> AgentMeta:
-        return AgentMeta(
-            execution_id=request.execution_id,
-            trace_id=request.trace_id,
-            model=stats.model,
-            attempts=stats.attempts,
-            prompt_tokens=stats.prompt_tokens,
-            completion_tokens=stats.completion_tokens,
-            latency_ms=int((time.monotonic() - started) * 1000),
         )

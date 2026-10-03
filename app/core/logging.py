@@ -4,7 +4,11 @@ import sys
 
 # Only these extra fields are emitted. Email bodies, deck text and prompts are
 # never logged — log metadata, not content.
-_EXTRA_FIELDS = ("trace_id", "execution_id", "agent", "event", "error_code", "category", "attempt")
+_EXTRA_FIELDS = (
+    "trace_id", "execution_id", "agent", "event", "error_code", "category", "attempt",
+    # counts only — never content
+    "claims", "sources", "evidence", "slots", "actions", "query_count", "round",
+)
 
 
 class JsonFormatter(logging.Formatter):
