@@ -12,6 +12,39 @@
 
 ---
 
+## Quick start (run the whole project)
+
+Three services work together:
+
+| Service | Folder | Port | Tech |
+|---|---|---|---|
+| Frontend | `frontend/` | 5173 | React + TypeScript + Vite |
+| Backend | `backend/` | 8080 | Spring Boot 3.5, Java 21 (H2 by default, PostgreSQL optional) |
+| AI service (8 agents) | `ai-service/` | 8000 | Python FastAPI + Gemini |
+
+**Prerequisites:** Python 3.10+, Java 21 JDK, Node.js 20+.
+
+1. **AI keys** — `ai-service/.env` holds the LLM settings (copy `ai-service/.env.example` if it's missing).
+   Set `LLM_API_KEY` (Gemini key from https://aistudio.google.com/apikey) and, for real web research,
+   `TAVILY_API_KEY` (free at https://tavily.com). Check them with:
+   `cd ai-service && python -m scripts.check_llm` (after the first start has created `.venv`, use `.venv\Scripts\python` on Windows).
+2. **Start everything:** double-click `start-dev.bat` (Windows) or run `./start-dev.sh` (macOS/Linux).
+   The first run installs dependencies; the backend downloads its libraries (~1 minute).
+3. Open **http://localhost:5173** and log in with **demo@pitsch.com / pitsch123**.
+4. Go to **Pitches → Submit pitch email → Use sample pitch → Process email**, then follow the buttons:
+   *Handle pitch* (research brief) → *Plan meeting* → pick a slot → *Draft email* → *Send* → *Mark complete*.
+
+Manual start (three terminals): `ai-service`: `uvicorn app.main:app --port 8000` · `backend`: `mvnw spring-boot:run` ·
+`frontend`: `npm install && npm run dev`. Backend health: http://localhost:8080/api/health (shows whether the AI service is reachable).
+
+**Tests:** `cd ai-service && pytest -q` · `cd backend && mvnw test` · `cd frontend && npm run build && npm run lint`.
+
+> Gmail, Google Calendar and Google Sheets actions run in **simulated mode**: labels, pipeline updates and sent
+> emails are recorded in Pitsch and approved meetings appear in the Pitsch calendar, but nothing is sent to Google
+> until OAuth integrations are added (`backend/.../workflow/ActionExecutor.java` is the one place to plug them in).
+
+---
+
 ## Table of Contents
 
 1. [Overview](#overview)
@@ -100,15 +133,15 @@ This README describes the intended architecture and design of Pitsch. Items are 
 
 | Area | Status |
 |---|---|
-| React + TypeScript + Vite frontend, communicating with the backend via REST | In development |
-| Spring Boot backend with REST APIs and PostgreSQL | In development |
-| Authentication (email/password, JWT) | In development |
-| Google OAuth sign-in | In development |
-| Email ingestion and AI classification | In development |
-| Agent Orchestrator and the four specialized agents | In development |
-| Investment brief generation | In development |
-| Human approval flows (email, meeting, workflow actions) | In development |
-| Google Calendar and Google Sheets integrations | In development |
+| React + TypeScript + Vite frontend, communicating with the backend via REST | Implemented |
+| Spring Boot backend with REST APIs (H2 default, PostgreSQL via `DB_URL`) | Implemented |
+| Authentication (email/password, JWT) | Implemented |
+| Google OAuth sign-in | Planned |
+| Email ingestion (API / UI submission) and AI classification | Implemented (Gmail polling planned) |
+| Workflow orchestration and the 8 AI agents (`ai-service/`) | Implemented |
+| Investment brief generation (claims verified against sources, no recommendation) | Implemented |
+| Human approval flows (email, meeting, workflow actions) | Implemented |
+| Google Calendar / Gmail / Sheets execution | Simulated (payloads ready for real APIs) |
 | Items listed under [Future Scope](#future-scope) | Planned |
 
 > This table should be updated by the team as individual components reach completion. Deployment is not claimed.
@@ -773,7 +806,7 @@ All endpoints are served by the Spring Boot backend.
 | Method | Endpoint | Description |
 |---|---|---|
 | POST | `/api/auth/signup` | Register a new user |
-| POST | `/api/auth/signin` | Authenticate and return a JWT |
+| POST | `/api/auth/login` (alias `/signin`) | Authenticate and return a JWT |
 
 ### Emails
 
