@@ -26,6 +26,22 @@ class LLMClient(Protocol):
     def complete_json(self, system: str, user: str) -> LLMResponse: ...
 
 
+MAX_PROVIDER_WAIT_SECONDS = 30.0
+_RETRY_DELAY = re.compile(r"""["']?retryDelay["']?\s*:\s*["']?(\d+(?:\.\d+)?)s""", re.IGNORECASE)
+
+
+def _retry_after(exc: APIStatusError) -> float | None:
+    """Seconds the provider asked us to wait: Retry-After header, or Gemini's RetryInfo.retryDelay."""
+    try:
+        header = exc.response.headers.get("retry-after")
+        if header:
+            return min(float(header), MAX_PROVIDER_WAIT_SECONDS)
+    except (AttributeError, ValueError):
+        pass
+    m = _RETRY_DELAY.search(str(getattr(exc, "body", "") or "") + str(exc))
+    return min(float(m.group(1)), MAX_PROVIDER_WAIT_SECONDS) if m else None
+
+
 class OpenAICompatibleClient:
     """Works with any OpenAI-compatible API: OpenAI, Gemini, Groq, OpenRouter, Ollama, etc."""
 
@@ -37,21 +53,51 @@ class OpenAICompatibleClient:
         timeout: float = 30.0,
         temperature: float | None = 0.0,
         json_mode: bool = True,
+        reasoning_effort: str | None = None,
+        http_client=None,
     ):
         # max_retries=0: retries are handled by call_structured so they are counted and logged.
-        self._client = OpenAI(api_key=api_key, base_url=base_url, timeout=timeout, max_retries=0)
+        self._client = OpenAI(api_key=api_key, base_url=base_url, timeout=timeout, max_retries=0,
+                              http_client=http_client)
         self._model = model
         self._temperature = temperature
         self._json_mode = json_mode
+        self._reasoning_effort = reasoning_effort
+
+    @property
+    def model(self) -> str:
+        return self._model
 
     def complete_json(self, system: str, user: str) -> LLMResponse:
+        try:
+            resp = self._create(system, user)
+        except APIStatusError as exc:
+            # Some providers reject response_format; switch JSON mode off once and carry on.
+            # (The prompt still demands JSON, and output is validated either way.)
+            if exc.status_code == 400 and self._json_mode and "response_format" in str(exc).lower():
+                logger.warning("provider rejected JSON mode; retrying without it", extra={"event": "json_mode_off"})
+                self._json_mode = False
+                resp = self._create(system, user)
+            else:
+                raise
+        usage = resp.usage
+        return LLMResponse(
+            content=resp.choices[0].message.content or "",
+            model=resp.model or self._model,
+            prompt_tokens=usage.prompt_tokens if usage else 0,
+            completion_tokens=usage.completion_tokens if usage else 0,
+        )
+
+    def _create(self, system: str, user: str):
         kwargs: dict = {}
         if self._temperature is not None:
             kwargs["temperature"] = self._temperature
         if self._json_mode:
             kwargs["response_format"] = {"type": "json_object"}
+        if self._reasoning_effort:
+            kwargs["reasoning_effort"] = self._reasoning_effort
         try:
-            resp = self._client.chat.completions.create(
+            return self._client.chat.completions.create(
                 model=self._model,
                 messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
                 **kwargs,
@@ -61,21 +107,21 @@ class OpenAICompatibleClient:
         except APIConnectionError as exc:
             raise AgentException(ErrorCode.LLM_API_ERROR, "Could not reach LLM provider", retryable=True) from exc
         except RateLimitError as exc:  # must come before APIStatusError (subclass)
-            raise AgentException(ErrorCode.LLM_API_ERROR, "LLM provider rate limit hit", retryable=True) from exc
+            raise AgentException(ErrorCode.LLM_API_ERROR, "LLM provider rate limit or quota hit (HTTP 429)",
+                                 retryable=True, retry_after_seconds=_retry_after(exc)) from exc
         except APIStatusError as exc:
+            if exc.status_code == 400 and self._json_mode and "response_format" in str(exc).lower():
+                raise  # handled by complete_json
+            messages = {
+                401: "LLM provider rejected the API key (HTTP 401) - check LLM_API_KEY",
+                403: "LLM API key lacks permission for this model/project (HTTP 403)",
+                404: f"Model '{self._model}' not found (HTTP 404) - check LLM_MODEL",
+            }
             raise AgentException(
                 ErrorCode.LLM_API_ERROR,
-                f"LLM provider returned HTTP {exc.status_code}",
+                messages.get(exc.status_code, f"LLM provider returned HTTP {exc.status_code}"),
                 retryable=exc.status_code >= 500,
             ) from exc
-
-        usage = resp.usage
-        return LLMResponse(
-            content=resp.choices[0].message.content or "",
-            model=resp.model,
-            prompt_tokens=usage.prompt_tokens if usage else 0,
-            completion_tokens=usage.completion_tokens if usage else 0,
-        )
 
 
 @dataclass
@@ -129,7 +175,8 @@ def call_structured(
                 raise
             logger.warning("LLM call failed, retrying",
                            extra={"event": "llm_retry", "error_code": exc.code.value, "attempt": attempt + 1})
-            sleep(backoff_seconds * (2 ** attempt))
+            wait = exc.retry_after_seconds if exc.retry_after_seconds is not None else backoff_seconds * (2 ** attempt)
+            sleep(wait)
             continue
 
         stats.model = resp.model

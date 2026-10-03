@@ -36,11 +36,16 @@ router = APIRouter(prefix="/agents", tags=["agents"])
 # ---------------- shared dependencies ----------------
 
 @lru_cache
-def get_llm() -> OpenAICompatibleClient:
+def get_llm(model: str | None = None) -> OpenAICompatibleClient:
+    """One client per model name (agents can use different models via <AGENT>_LLM_MODEL)."""
     s = get_settings()
-    return OpenAICompatibleClient(api_key=s.llm_api_key, model=s.llm_model, base_url=s.llm_base_url,
+    return OpenAICompatibleClient(api_key=s.llm_api_key, model=model or s.llm_model, base_url=s.llm_base_url,
                                   timeout=s.llm_timeout_seconds, temperature=s.llm_temperature,
-                                  json_mode=s.llm_json_mode)
+                                  json_mode=s.llm_json_mode, reasoning_effort=s.llm_reasoning_effort)
+
+
+def llm_for(agent: str) -> OpenAICompatibleClient:
+    return get_llm(get_settings().model_for(agent))
 
 
 @lru_cache
@@ -58,42 +63,42 @@ def _retries() -> dict:
 @lru_cache
 def get_classifier() -> EmailClassifierAgent:
     s = get_settings()
-    return EmailClassifierAgent(get_llm(), review_threshold=s.classifier_review_threshold,
+    return EmailClassifierAgent(llm_for("classifier"), review_threshold=s.classifier_review_threshold,
                                 max_body_chars=s.classifier_max_body_chars, **_retries())
 
 
 @lru_cache
 def get_document_agent() -> DocumentAgent:
     s = get_settings()
-    return DocumentAgent(get_llm(), max_chars=s.document_max_chars, max_file_mb=s.document_max_file_mb, **_retries())
+    return DocumentAgent(llm_for("document"), max_chars=s.document_max_chars, max_file_mb=s.document_max_file_mb, **_retries())
 
 
 @lru_cache
 def get_research_agent() -> ResearchAgent:
     s = get_settings()
-    return ResearchAgent(get_llm(), get_search(), results_per_query=s.search_results_per_query,
+    return ResearchAgent(llm_for("research"), get_search(), results_per_query=s.search_results_per_query,
                          max_queries=s.research_max_queries, max_rounds=s.research_max_rounds,
                          staleness_days=s.research_staleness_days, **_retries())
 
 
 @lru_cache
 def get_verification_agent() -> VerificationAgent:
-    return VerificationAgent(get_llm(), **_retries())
+    return VerificationAgent(llm_for("verification"), **_retries())
 
 
 @lru_cache
 def get_analysis_agent() -> AnalysisAgent:
-    return AnalysisAgent(get_llm(), **_retries())
+    return AnalysisAgent(llm_for("analysis"), **_retries())
 
 
 @lru_cache
 def get_email_response_agent() -> EmailResponseAgent:
-    return EmailResponseAgent(get_llm(), **_retries())
+    return EmailResponseAgent(llm_for("email_response"), **_retries())
 
 
 @lru_cache
 def get_calendar_agent() -> CalendarAgent:
-    return CalendarAgent(get_llm(), **_retries())
+    return CalendarAgent(llm_for("calendar"), **_retries())
 
 
 @lru_cache

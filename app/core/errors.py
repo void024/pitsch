@@ -16,8 +16,10 @@ class ErrorCode(str, Enum):
 class AgentException(Exception):
     """Raised inside agents; converted into an AgentResult error envelope at the boundary."""
 
-    def __init__(self, code: ErrorCode, message: str, retryable: bool = False):
+    def __init__(self, code: ErrorCode, message: str, retryable: bool = False,
+                 retry_after_seconds: float | None = None):
         super().__init__(message)
         self.code = code
         self.message = message
         self.retryable = retryable
+        self.retry_after_seconds = retry_after_seconds  # provider-requested wait (e.g. HTTP 429)
