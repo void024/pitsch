@@ -32,7 +32,7 @@ class AvailabilitySource(str, Enum):
     NONE = "NONE"
 
 
-def _check_tz(v: str | None) -> str | None:
+def check_timezone(v: str | None) -> str | None:
     if v is None:
         return v
     try:
@@ -98,7 +98,7 @@ class CalendarInput(CamelModel):
     @field_validator("timezone", "founder_timezone")
     @classmethod
     def _valid_tz(cls, v: str | None) -> str | None:
-        return _check_tz(v)
+        return check_timezone(v)
 
 
 # ---------- LLM output (only for parsing founder availability text) ----------
