@@ -1,0 +1,92 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/agents/calendar",
+    "body": {
+      "executionId": "102:calendar:8",
+      "traceId": "trace-102",
+      "input": {
+        "timezone": "Asia/Kolkata",
+        "now": "2026-10-05T08:00:00+05:30",
+        "busy": [
+          {
+            "start": "2026-10-06T10:00:00+05:30",
+            "end": "2026-10-06T11:00:00+05:30"
+          }
+        ]
+      }
+    }
+  },
+  "response": {
+    "success": true,
+    "agent": "CALENDAR_AGENT",
+    "data": {
+      "pitchId": null,
+      "timezone": "Asia/Kolkata",
+      "durationMinutes": 30,
+      "slots": [
+        {
+          "rank": 1,
+          "start": "2026-10-07T09:30:00+05:30",
+          "end": "2026-10-07T10:00:00+05:30",
+          "founderLocalStart": null,
+          "score": 56.0,
+          "reasons": [
+            "Free, within working hours (09:30–18:30)",
+            "At least 15 min buffer around other meetings",
+            "No other meetings that day"
+          ]
+        },
+        {
+          "rank": 2,
+          "start": "2026-10-08T09:30:00+05:30",
+          "end": "2026-10-08T10:00:00+05:30",
+          "founderLocalStart": null,
+          "score": 55.0,
+          "reasons": [
+            "Free, within working hours (09:30–18:30)",
+            "At least 15 min buffer around other meetings",
+            "No other meetings that day"
+          ]
+        },
+        {
+          "rank": 3,
+          "start": "2026-10-09T09:30:00+05:30",
+          "end": "2026-10-09T10:00:00+05:30",
+          "founderLocalStart": null,
+          "score": 54.0,
+          "reasons": [
+            "Free, within working hours (09:30–18:30)",
+            "At least 15 min buffer around other meetings",
+            "No other meetings that day"
+          ]
+        }
+      ],
+      "founderAvailabilityUsed": [],
+      "founderAvailabilitySource": "NONE",
+      "candidatesConsidered": 108,
+      "constraintsApplied": [
+        "30-min meeting",
+        "15-min buffer",
+        "working hours 09:30–18:30 MON, TUE, WED, THU, FRI (Asia/Kolkata)",
+        "at least 12h notice",
+        "max 6 meetings/day"
+      ],
+      "requiresApproval": true,
+      "needsHumanReview": false,
+      "reviewReasons": [],
+      "warnings": []
+    },
+    "error": null,
+    "meta": {
+      "executionId": "102:calendar:8",
+      "traceId": "trace-102",
+      "schemaVersion": "1.0",
+      "model": null,
+      "attempts": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "latencyMs": 2
+    }
+  }
+}

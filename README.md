@@ -1,62 +1,56 @@
-# Pitsch AI Service — Phase 0 + Agent #1
+# Pitsch AI Service
 
-Pitsch is an AI-assisted startup deal-intelligence system. This repository contains the
-AI-service foundation and the first production-oriented agent: the **Email Classification Agent**.
+**Automating investment research and deal workflows — keeping decisions human.**
 
-## Architecture boundary
+Pitsch takes an unstructured startup pitch sitting in an investor's inbox, identifies it, researches
+it across sources, cross-examines the founder's claims, structures the evidence into a decision-ready
+brief, drafts communication and proposes meeting times. The investor makes every consequential
+decision.
 
-The classifier is intentionally narrow:
+This repository is the **AI service**: eight agents exposed as REST endpoints, called only by the
+Spring Boot backend.
 
-- **AI service:** interprets the email and returns structured classification.
-- **Spring Boot/orchestrator:** owns workflow state, idempotency, business rules, persistence and external integrations.
-- **PostgreSQL:** persistent application state (not accessed by this service).
-- **React:** presentation layer (not accessed by this service).
-- **Human investor/analyst:** makes the investment decision and approves consequential actions.
+```
+                 Spring Boot backend (orchestrator, state, Gmail/Calendar/Sheets, PostgreSQL)
+                                          │  REST (camelCase JSON)
+ ┌────────────────────────────────────────┼────────────────────────────────────────────┐
+ │  Pitsch AI service                     ▼                                            │
+ │  1 Email Classifier ─► 2 Document ─► 3 Research ─► 4 Verification ─► 5 Analysis     │
+ │                                                                         │           │
+ │                               6 Calendar ─► 7 Email Response ─► 8 Action            │
+ └─────────────────────────────────────────────────────────────────────────────────────┘
+        Each agent: structured input ─► structured AgentResult. No DB, no UI, no decisions.
+```
 
-The classifier has **no database, Gmail, Calendar, SMTP or investment-decision tools**.
+## The agents
 
-## Agent #1
+| # | Agent | Endpoint | What it does | Uses LLM? |
+|---|---|---|---|---|
+| 1 | Email Classifier | `POST /agents/email-classifier` | Pitch / follow-up / update / not a pitch; links follow-ups to existing pitches | Yes |
+| 2 | Document | `POST /agents/document` | Reads PDF/PPTX/email; extracts company, founders, raise, metrics and quote-backed **claims** | Yes |
+| 3 | Research | `POST /agents/research` | Bounded search loop; collects **evidence** with verbatim excerpts, sources, dates | Yes + web search |
+| 4 | Verification | `POST /agents/verification` | Checks each claim: VERIFIED / PARTIALLY_VERIFIED / UNVERIFIED / CONTRADICTED / NOT_FOUND | Yes |
+| 5 | Analysis | `POST /agents/analysis` | Builds the research brief: overview, claims matrix, market, competitors, risks, **open questions** — no recommendation | Yes |
+| 6 | Calendar | `POST /agents/calendar` | Ranks meeting slots with explanations; never books | Only to read "I'm free Tue afternoon" |
+| 7 | Email Response | `POST /agents/email-response` | Drafts founder emails; never sends | Yes |
+| 8 | Action | `POST /agents/action` | Builds Gmail/Calendar/Sheets payloads + approval flags for the backend to execute | No |
 
-The agent classifies an email as:
+How each agent works and why: **[docs/agents.md](docs/agents.md)**
+How the backend should call them: **[docs/integration.md](docs/integration.md)**
+Real request/response examples for every step: **[docs/examples/](docs/examples/)** · sample brief: [sample-brief.md](docs/examples/sample-brief.md)
 
-- `NEW_PITCH`
-- `PITCH_FOLLOW_UP`
-- `PITCH_UPDATE`
-- `NOT_PITCH`
-- `AMBIGUOUS`
+## Design principles
 
-It also extracts useful signals such as forwarded status, companies mentioned, meeting requests,
-workflow closure, confidence and candidate-pitch matching evidence.
-
-Application actions are deterministic code:
-
-- `NEW_PITCH` → `ASK_TO_HANDLE`
-- existing follow-up + explicit meeting request → `PLAN_MEETING`
-- existing follow-up + explicit closure → `COMPLETE_WORKFLOW`
-- existing follow-up → `PLAN_EMAIL_RESPONSE`
-- `PITCH_UPDATE` → `ASK_TO_HANDLE`
-- `NOT_PITCH` → `STOP`
-- `AMBIGUOUS` → `ASK_TO_HANDLE`
-
-Low-confidence or internally inconsistent results are escalated to human review.
-
-## Reliability
-
-The service includes:
-
-- Pydantic input/output validation
-- OpenAI-compatible LLM client
-- provider error classification and exponential backoff
-- malformed JSON retry with validation feedback
-- deterministic candidate matching
-- pitch-ID allowlisting
-- prompt-injection fencing
-- bounded email body size
-- structured JSON logs with no email/deck/prompt content
-- execution/trace IDs
-- token and latency metadata
-- HTTP validation errors
-- offline tests with a fake LLM
+1. **The model interprets; code decides.** Workflow actions, IDs, times, recipients and statuses are
+   set or checked by deterministic code.
+2. **Trust but verify every model output.** Quotes and excerpts must exist in the source text; IDs
+   must be ones the code issued; URLs must appear in the input. Anything else is dropped or flagged.
+3. **Claims are not facts.** Every item carries provenance: 🟣 Pitch · 🔵 Company · 🟢 External · 🟠 AI inference.
+4. **No investment recommendations.** Recommendation language is detected and rewritten; the brief
+   ends with open questions for the investor instead of a verdict.
+5. **Humans approve anything external.** Sending email and creating meetings are always `requiresApproval`.
+6. **Untrusted text stays data.** Emails, decks and web pages are fenced so they can't inject instructions.
+7. **Fail visibly.** Uncertain results set `needsHumanReview` with reasons; failures return a typed error with `retryable`.
 
 ## Run locally
 
@@ -73,104 +67,82 @@ copy .env.example .env
 source .venv/bin/activate
 cp .env.example .env
 
-pip install -r requirements-dev.txt   # runtime + test dependencies
-# edit .env with your LLM credentials/model
+pip install -r requirements-dev.txt    # runtime + test dependencies
+# edit .env: LLM_API_KEY, LLM_MODEL (and TAVILY_API_KEY for web research)
 
-pytest -q                              # runs offline with a fake LLM — no API key needed
+pytest -q                               # 100% offline: fake LLM + fake search, no keys needed
 uvicorn app.main:app --reload --port 8000
 ```
 
-Interactive API docs: `http://localhost:8000/docs`
+Interactive API docs: `http://localhost:8000/docs` · Health check: `GET /health`
 
-Health check:
+The service refuses to start if `LLM_API_KEY` / `LLM_MODEL` are missing. Without `TAVILY_API_KEY`,
+research still runs but collects no web evidence (and flags that for review).
 
-```text
-GET /health
+## Common envelope
+
+Every endpoint takes and returns the same envelope:
+
+```json
+// request
+{ "executionId": "102:RESEARCH_AGENT:4", "traceId": "req-abc", "input": { ... } }
+
+// response
+{ "success": true, "agent": "RESEARCH_AGENT", "data": { ... }, "error": null,
+  "meta": { "executionId": "...", "traceId": "...", "model": "...", "attempts": 2,
+            "promptTokens": 5120, "completionTokens": 830, "latencyMs": 4210 } }
+
+// handled failure (HTTP 200)
+{ "success": false, "agent": "RESEARCH_AGENT", "data": null,
+  "error": { "code": "SEARCH_FAILED", "message": "All web searches failed.", "retryable": true }, "meta": { ... } }
 ```
 
-Classifier endpoint:
-
-```text
-POST /agents/email-classifier
-```
-
-The API accepts/returns camelCase JSON so it can be called cleanly from the Spring Boot backend.
+Invalid input returns HTTP 422 with `error.code = "INVALID_INPUT"`.
 
 ## Repository layout
 
 ```text
 pitsch-ai/
-├── .github/workflows/tests.yml   # CI: runs pytest on every push / PR
 ├── app/
-│   ├── main.py
-│   ├── config.py
-│   ├── api/
-│   │   └── routes.py
+│   ├── main.py                 # FastAPI app, startup config check, validation errors
+│   ├── config.py               # all settings (from .env)
+│   ├── api/routes.py           # one endpoint per agent
 │   ├── core/
-│   │   ├── errors.py
-│   │   ├── llm.py
-│   │   └── logging.py
-│   ├── schemas/
-│   │   └── common.py
+│   │   ├── llm.py              # OpenAI-compatible client, retries, JSON validation + repair
+│   │   ├── search.py           # SearchProvider interface + Tavily
+│   │   ├── guardrails.py       # no-recommendation / no-commitment detectors
+│   │   ├── text.py             # quote/URL/domain checks, prompt fencing
+│   │   ├── errors.py           # error codes
+│   │   └── logging.py          # JSON logs, never content
+│   ├── schemas/common.py       # AgentRequest / AgentResult envelope
 │   └── agents/
-│       └── classifier/
-│           ├── agent.py
-│           ├── matcher.py
-│           ├── prompt.py
-│           └── schemas.py
-├── tests/
-│   └── test_classifier.py
+│       ├── base.py             # shared run wrapper (envelope, meta, logs, crash handling)
+│       ├── classifier/  document/  research/  verification/
+│       └── analysis/  calendar/  email_response/  action/
+├── tests/                      # one file per agent + end-to-end pipeline test
 ├── docs/
-│   └── email-classifier.md
-├── evals/
-│   └── README.md
-├── .env.example
-├── .gitattributes
-├── .gitignore
-├── pytest.ini
-├── requirements.txt              # runtime dependencies
-└── requirements-dev.txt          # + test dependencies
+│   ├── agents.md               # how each agent works (read this first)
+│   ├── integration.md          # contract for the Spring Boot backend
+│   ├── email-classifier.md
+│   └── examples/               # recorded request/response for every step
+├── evals/                      # labelled evaluation sets (to be built)
+├── .github/workflows/tests.yml # CI
+├── .env.example  requirements.txt  requirements-dev.txt  pytest.ini
 ```
-
-## Important integration contract
-
-Spring Boot should generate a deterministic `executionId`, for example:
-
-```text
-<workflowId>:EMAIL_CLASSIFIER:<stepNumber>
-```
-
-and a request-scoped `traceId`.
-
-IDs (`pitchId`, `previousPitchId`, etc.) may be sent as JSON numbers or strings. They are
-treated as strings internally and returned as strings (`"42"`); Jackson maps these back to
-`Long` without extra configuration.
-
-The AI service returns `success=false` inside the response envelope for handled agent failures;
-Spring Boot can inspect `error.retryable` to decide whether the workflow step should be retried.
-
-## Security
-
-Email text is untrusted input. It is fenced and neutralized before being placed in the prompt.
-The agent must never follow instructions embedded inside email content.
-
-Never put API keys, OAuth credentials, full email bodies or extracted deck text into logs.
 
 ## Working on this repo
 
 - `main` should always pass `pytest`. CI checks every push and pull request.
-- Work on a branch per agent or feature, e.g. `agent/document`, `fix/classifier-threshold`,
-  then open a pull request into `main`.
-- Never commit `.env`, API keys, OAuth tokens or real email/deck content. `.gitignore`
-  already excludes `.env` and `evals/data/private/`.
-- If you change an agent's input/output schema, update its doc in `docs/` and tell the
-  backend team: that schema is the integration contract.
+- Work on a branch per change, e.g. `agent/research-serper`, `fix/calendar-lunch`, and open a pull request.
+- Never commit `.env`, API keys, OAuth tokens or real email/deck content.
+- If you change an agent's input/output schema, regenerate the examples
+  (`PITSCH_RECORD_EXAMPLES=docs/examples pytest tests/test_pipeline_e2e.py`), update
+  `docs/integration.md`, and tell the backend team — the schemas are the integration contract.
 
-## Next steps
+## Status and next steps
 
-After Agent #1 is frozen:
-
-1. expand the labelled regression/evaluation set,
-2. measure real-model accuracy, latency and token usage,
-3. integrate the endpoint with Spring Boot,
-4. then build Agent #2 — the Document Agent.
+- [x] All eight agents with offline tests (fake LLM/search) and an end-to-end pipeline test
+- [ ] Real-model evaluation sets in `evals/` (accuracy, latency, cost per pitch)
+- [ ] Calibrate `CLASSIFIER_REVIEW_THRESHOLD` on labelled emails
+- [ ] Spring Boot integration test against a running service
+- [ ] Optional: OCR for scanned decks; a second search provider for cross-checking

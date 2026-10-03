@@ -27,7 +27,8 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title="Pitsch AI Service", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="Pitsch AI Service", version="0.2.0", lifespan=lifespan,
+              description="AI agents for Pitsch. Called only by the Spring Boot backend.")
 app.include_router(router)
 
 

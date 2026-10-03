@@ -1,0 +1,70 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/agents/email-classifier",
+    "body": {
+      "executionId": "102:email-classifier:1",
+      "traceId": "trace-102",
+      "input": {
+        "emailId": "email_1",
+        "threadId": null,
+        "inReplyTo": null,
+        "references": [],
+        "sender": {
+          "email": "ananya@krishiai.in",
+          "name": "Ananya"
+        },
+        "to": [],
+        "cc": [],
+        "subject": "Krishi AI - seed round",
+        "body": "Hi, we're raising a seed round for Krishi AI. Deck attached.",
+        "receivedAt": "2026-10-02T10:00:00+05:30",
+        "attachments": [
+          {
+            "filename": "deck.pdf",
+            "mimeType": "application/pdf",
+            "sizeBytes": 2048,
+            "readable": true
+          }
+        ],
+        "candidatePitches": []
+      }
+    }
+  },
+  "response": {
+    "success": true,
+    "agent": "EMAIL_CLASSIFIER",
+    "data": {
+      "category": "NEW_PITCH",
+      "isPitch": true,
+      "isFollowUp": false,
+      "notPitchType": null,
+      "previousPitchId": null,
+      "detectedCompanies": [
+        "Krishi AI"
+      ],
+      "isForwarded": false,
+      "originalSenderEmail": null,
+      "meetingRequested": false,
+      "workflowClosed": false,
+      "confidence": 0.93,
+      "recommendedAction": "ASK_TO_HANDLE",
+      "needsHumanReview": false,
+      "reviewReasons": [],
+      "warnings": [],
+      "reason": "Founder introduces Krishi AI and asks for seed investment.",
+      "matchSignals": []
+    },
+    "error": null,
+    "meta": {
+      "executionId": "102:email-classifier:1",
+      "traceId": "trace-102",
+      "schemaVersion": "1.0",
+      "model": "fake-model",
+      "attempts": 1,
+      "promptTokens": 100,
+      "completionTokens": 20,
+      "latencyMs": 0
+    }
+  }
+}
