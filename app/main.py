@@ -1,15 +1,33 @@
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 
 from app.api.routes import router
+from app.config import get_settings
 from app.core.logging import configure_logging
 
 configure_logging(os.getenv("LOG_LEVEL", "INFO"))
 
-app = FastAPI(title="Pitsch AI Service", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    # Fail fast at startup if config is missing, instead of starting "healthy" and then
+    # returning a bare HTTP 500 on every agent call.
+    try:
+        get_settings()
+    except ValidationError as exc:
+        names = ", ".join(str(e["loc"][0]).upper() for e in exc.errors())
+        raise RuntimeError(
+            f"Missing or invalid configuration: {names}. Copy .env.example to .env and fill it in."
+        ) from None
+    yield
+
+
+app = FastAPI(title="Pitsch AI Service", version="0.1.0", lifespan=lifespan)
 app.include_router(router)
 
 

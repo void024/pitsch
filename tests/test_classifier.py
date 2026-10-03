@@ -266,3 +266,18 @@ def test_numeric_pitch_ids_from_spring_boot_are_accepted():
     d = agent.run(make_request(candidates=[numeric])).data
     assert d.previous_pitch_id == "42"
     assert d.is_follow_up and not d.needs_human_review
+
+
+def test_service_refuses_to_start_without_llm_config(monkeypatch, tmp_path):
+    import pytest
+    from app.config import get_settings
+    monkeypatch.chdir(tmp_path)  # no .env file here
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    monkeypatch.delenv("LLM_MODEL", raising=False)
+    get_settings.cache_clear()
+    try:
+        with pytest.raises(RuntimeError, match="LLM_API_KEY"):
+            with TestClient(app):  # entering the context runs startup
+                pass
+    finally:
+        get_settings.cache_clear()
