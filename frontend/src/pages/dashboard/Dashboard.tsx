@@ -85,8 +85,12 @@ export default function Dashboard() {
         />
         <StatCard label="Upcoming events" value={events.data ? upcoming.length : null} icon="calendar" tone="blue" />
         <StatCard
-          label="AI workflows"
-          value={workflows.data ? workflows.data.length : null}
+          label="Pitches needing you"
+          value={
+            workflows.data
+              ? workflows.data.filter((w) => ['AWAITING_USER', 'WAITING_FOR_APPROVAL', 'FAILED'].includes(w.status)).length
+              : null
+          }
           icon="ai"
           tone="orange"
         />
@@ -182,9 +186,9 @@ export default function Dashboard() {
               <Icon name="calendar" />
               <span>New event</span>
             </Link>
-            <Link to="/ai" className="quick-action">
+            <Link to="/pitches?new=1" className="quick-action">
               <Icon name="ai" />
-              <span>Ask AI</span>
+              <span>Submit pitch</span>
             </Link>
             <Link to="/settings" className="quick-action">
               <Icon name="settings" />
@@ -194,9 +198,9 @@ export default function Dashboard() {
         </Card>
 
         <Card
-          title="AI / Workflows"
+          title="Pitches"
           action={
-            <Link to="/ai" className="card-link">
+            <Link to="/pitches" className="card-link">
               Open
             </Link>
           }
@@ -206,15 +210,15 @@ export default function Dashboard() {
           ) : workflows.error ? (
             <ErrorState message={workflows.error} onRetry={workflows.reload} />
           ) : recentWorkflows.length === 0 ? (
-            <EmptyState icon="ai" title="No workflows yet" description="Ask the AI to run an action for you." />
+            <EmptyState icon="ai" title="No pitches yet" description="Submit a pitch email and the agents will research it." />
           ) : (
             <ul className="list">
               {recentWorkflows.map((workflow) => (
                 <li key={workflow.id} className="list-item">
-                  <div className="list-main">
-                    <p className="list-title clamp">{workflow.prompt}</p>
+                  <Link to={`/workflows/${workflow.id}`} className="list-main list-link">
+                    <p className="list-title clamp">{workflow.companyName ?? workflow.prompt}</p>
                     <small className="muted">{timeAgo(workflow.createdAt)}</small>
-                  </div>
+                  </Link>
                   <Badge tone={WORKFLOW_TONE[workflow.status]}>{WORKFLOW_LABEL[workflow.status]}</Badge>
                 </li>
               ))}

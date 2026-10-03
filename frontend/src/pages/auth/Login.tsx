@@ -65,6 +65,7 @@ export default function Login() {
         </div>
         <h1>Welcome back</h1>
         <p className="muted">Sign in to continue to your workspace.</p>
+        <p className="muted small-hint">Demo account: demo@pitsch.com / pitsch123</p>
 
         <form onSubmit={handleSubmit} noValidate className="form">
           <Input

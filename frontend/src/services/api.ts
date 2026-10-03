@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-/** Change this single constant (or move it to an env variable later). */
-export const API_BASE_URL = 'http://localhost:8080/api';
+/** Backend URL. Override with VITE_API_BASE_URL in frontend/.env (e.g. for a deployed backend). */
+export const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080/api';
 
 export const TOKEN_KEY = 'pitsch_token';
 
@@ -16,6 +16,12 @@ export const ENDPOINTS = {
   events: '/events',
   workflows: '/workflows',
   activity: '/activity',
+  emails: '/emails',
+  pitches: '/pitches',
+  notifications: '/notifications',
+  calendar: '/calendar',
+  drafts: '/drafts',
+  health: '/health',
 } as const;
 
 const api = axios.create({

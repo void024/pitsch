@@ -811,3 +811,40 @@
     padding: 24px;
   }
 }
+.small-hint {
+  font-size: 0.82rem;
+  margin-top: 4px;
+}
+
+.notification-btn {
+  all: unset;
+  display: block;
+  width: 100%;
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 2px 4px;
+}
+
+.notification-btn:hover {
+  background: var(--card-2);
+}
+
+.notification-btn.unread strong::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--purple);
+  vertical-align: middle;
+}
+
+.list-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.list-link:hover .list-title {
+  text-decoration: underline;
+}

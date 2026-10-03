@@ -5,12 +5,13 @@ import { Icon } from '../ui/Icon';
 import { Loading } from '../ui/Loading';
 import { ErrorState } from '../ui/ErrorState';
 import { EmptyState } from '../ui/EmptyState';
-import { activityService } from '../../services/activityService';
+import { notificationService } from '../../services/notificationService';
 import { useFetch } from '../../hooks/useFetch';
 import { useClickOutside } from '../../hooks/useClickOutside';
 import { useCurrentUser } from '../../hooks/useCurrentUser';
 import { useLogout } from '../../hooks/useLogout';
-import { initials, sortActivity, timeAgo } from '../../utils/format';
+import type { AppNotification } from '../../types';
+import { cx, initials, sortNewest, timeAgo } from '../../utils/format';
 
 interface MenuProps {
   label: string;
@@ -41,22 +42,35 @@ function Menu({ label, trigger, children }: MenuProps) {
   );
 }
 
-function NotificationList() {
-  const { data, loading, error, reload } = useFetch(activityService.list);
+function NotificationList({ onOpen }: { onOpen: () => void }) {
+  const navigate = useNavigate();
+  const { data, loading, error, reload } = useFetch(notificationService.list);
   if (loading) return <Loading />;
   if (error) return <ErrorState message={error} onRetry={reload} />;
-  const items = sortActivity(data ?? []).slice(0, 6);
+  const items = sortNewest(data ?? []).slice(0, 8);
   if (items.length === 0) {
-    return <EmptyState icon="bell" title="You're all caught up" description="New activity will show up here." />;
+    return <EmptyState icon="bell" title="You're all caught up" description="Pitch updates will show up here." />;
   }
+  const open = async (item: AppNotification) => {
+    if (!item.read) {
+      await notificationService.markRead(item.id).catch(() => undefined);
+    }
+    onOpen();
+    if (item.workflowId) navigate(`/workflows/${item.workflowId}`);
+  };
   return (
     <ul className="list">
       {items.map((item) => (
         <li key={item.id} className="list-item">
-          <div className="list-main">
-            <p>{item.message}</p>
-            <small className="muted">{timeAgo(item.createdAt)}</small>
-          </div>
+          <button type="button" className={cx('notification-btn', !item.read && 'unread')} onClick={() => void open(item)}>
+            <div className="list-main">
+              <p>
+                <strong>{item.title}</strong>
+              </p>
+              <p className="muted clamp">{item.message}</p>
+              <small className="muted">{timeAgo(item.createdAt)}</small>
+            </div>
+          </button>
         </li>
       ))}
     </ul>
@@ -100,10 +114,10 @@ export function Navbar({ onMenuClick }: NavbarProps) {
 
       <div className="navbar-right">
         <Menu label="Notifications" trigger={<Icon name="bell" />}>
-          {() => (
+          {(close) => (
             <div className="menu-content">
-              <h3 className="menu-title">Recent activity</h3>
-              <NotificationList />
+              <h3 className="menu-title">Notifications</h3>
+              <NotificationList onOpen={close} />
             </div>
           )}
         </Menu>

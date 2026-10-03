@@ -1,37 +1,11 @@
 import api, { ENDPOINTS, TOKEN_KEY } from './api';
 import type { AuthResponse, LoginRequest, User } from '../types';
 
-const DEMO_EMAIL = 'demo@pitsch.com';
-const DEMO_PASSWORD = 'pitsch123';
-
-const DEMO_MODE = true;
-
+/** Real authentication against the Spring Boot backend (JWT). Demo account: demo@pitsch.com / pitsch123. */
 export const authService = {
   login: async (payload: LoginRequest): Promise<AuthResponse> => {
-    if (DEMO_MODE) {
-      if (
-        payload.email !== DEMO_EMAIL ||
-        payload.password !== DEMO_PASSWORD
-      ) {
-        throw new Error('Invalid email or password.');
-      }
-
-      const demoToken = 'pitsch-demo-token';
-
-      localStorage.setItem(TOKEN_KEY, demoToken);
-
-      return {
-        token: demoToken,
-      } as AuthResponse;
-    }
-
-    const { data } = await api.post<AuthResponse>(
-      ENDPOINTS.login,
-      payload
-    );
-
+    const { data } = await api.post<AuthResponse>(ENDPOINTS.login, payload);
     localStorage.setItem(TOKEN_KEY, data.token);
-
     return data;
   },
 
@@ -41,11 +15,6 @@ export const authService = {
   },
 
   logout: async (): Promise<void> => {
-    if (DEMO_MODE) {
-      localStorage.removeItem(TOKEN_KEY);
-      return;
-    }
-
     try {
       await api.post(ENDPOINTS.logout);
     } catch {

@@ -4,8 +4,10 @@ import type {
   CalendarEvent,
   TaskPriority,
   TaskStatus,
+  Provenance,
   TimeFormat,
   UserSettings,
+  WorkflowAction,
   WorkflowStatus,
 } from '../types';
 
@@ -36,16 +38,70 @@ export const PRIORITY_TONE: Record<TaskPriority, BadgeTone> = {
   HIGH: 'red',
 };
 export const WORKFLOW_LABEL: Record<WorkflowStatus, string> = {
-  PENDING: 'Pending',
-  RUNNING: 'Running',
+  RECEIVED: 'Received',
+  CLASSIFYING: 'Analyzing email…',
+  NOT_PITCH: 'Not a pitch',
+  AWAITING_USER: 'Needs your decision',
+  PROCESSING: 'Agents working',
+  WAITING_FOR_APPROVAL: 'Ready for review',
   COMPLETED: 'Completed',
+  STOPPED: 'Stopped',
   FAILED: 'Failed',
 };
 export const WORKFLOW_TONE: Record<WorkflowStatus, BadgeTone> = {
-  PENDING: 'orange',
-  RUNNING: 'blue',
+  RECEIVED: 'neutral',
+  CLASSIFYING: 'blue',
+  NOT_PITCH: 'neutral',
+  AWAITING_USER: 'orange',
+  PROCESSING: 'blue',
+  WAITING_FOR_APPROVAL: 'purple',
   COMPLETED: 'green',
+  STOPPED: 'neutral',
   FAILED: 'red',
+};
+/** Statuses where the backend is still working (the UI polls). */
+export function isWorkflowActive(status: WorkflowStatus): boolean {
+  return status === 'RECEIVED' || status === 'CLASSIFYING' || status === 'PROCESSING';
+}
+export const WORKFLOW_TYPE_LABEL: Record<string, string> = {
+  NEW_PITCH: 'New pitch',
+  FOLLOW_UP: 'Follow-up',
+  NOT_PITCH: 'Not a pitch',
+};
+export const ACTION_LABEL: Record<WorkflowAction, string> = {
+  COMPLETE_WORKFLOW: 'Handle pitch',
+  STOP: 'Stop',
+  PLAN_MEETING: 'Plan meeting',
+  PLAN_EMAIL_RESPONSE: 'Draft email',
+  RETRY: 'Retry',
+};
+export const CLAIM_STATUS_LABEL: Record<string, string> = {
+  VERIFIED: 'Verified',
+  PARTIALLY_VERIFIED: 'Partially verified',
+  UNVERIFIED: 'Unverified',
+  CONTRADICTED: 'Contradicted',
+  NOT_FOUND: 'Not found',
+  NOT_CHECKED: 'Not checked',
+};
+export const CLAIM_STATUS_TONE: Record<string, BadgeTone> = {
+  VERIFIED: 'green',
+  PARTIALLY_VERIFIED: 'orange',
+  UNVERIFIED: 'neutral',
+  CONTRADICTED: 'red',
+  NOT_FOUND: 'neutral',
+  NOT_CHECKED: 'neutral',
+};
+export const PROVENANCE_LABEL: Record<Provenance, string> = {
+  PITCH: 'Pitch',
+  COMPANY: 'Company',
+  EXTERNAL: 'External',
+  AI_INFERENCE: 'AI inference',
+};
+export const PROVENANCE_TONE: Record<Provenance, BadgeTone> = {
+  PITCH: 'purple',
+  COMPANY: 'blue',
+  EXTERNAL: 'green',
+  AI_INFERENCE: 'orange',
 };
 
 /* ---------- User preferences (mirrored locally so formatting works everywhere) ---------- */
@@ -175,4 +231,17 @@ export function upcomingEvents(events: CalendarEvent[]): CalendarEvent[] {
   return events
     .filter((e) => new Date(e.endTime).getTime() >= now)
     .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+}
+
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/** "Wed, 7 Oct · 2:00 PM – 2:30 PM" in the viewer's locale/time format. */
+export function formatSlot(start: string, end: string): string {
+  const s = parseDate(start);
+  const day = s.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+  return `${day} · ${formatTime(start)} – ${formatTime(end)}`;
 }

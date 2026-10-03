@@ -14,6 +14,17 @@ import { useLogout } from '../../hooks/useLogout';
 import type { NotificationSettings, TimeFormat, User, UserSettings } from '../../types';
 import { applyPreferences } from '../../utils/format';
 
+const TIMEZONES = [
+  'Asia/Kolkata',
+  'Asia/Singapore',
+  'Asia/Dubai',
+  'Europe/London',
+  'Europe/Berlin',
+  'America/New_York',
+  'America/Los_Angeles',
+  'UTC',
+];
+
 interface Feedback {
   type: 'success' | 'error';
   text: string;
@@ -91,6 +102,9 @@ function SettingsForm({ settings }: SettingsFormProps) {
   const [timeFormat, setTimeFormat] = useState<TimeFormat>(settings.timeFormat);
   const [compactMode, setCompactMode] = useState(settings.compactMode);
   const [notifications, setNotifications] = useState<NotificationSettings>(settings.notifications);
+  const [firmName, setFirmName] = useState(settings.firmName ?? '');
+  const [investorTitle, setInvestorTitle] = useState(settings.investorTitle ?? '');
+  const [timezone, setTimezone] = useState(settings.timezone ?? 'Asia/Kolkata');
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
 
@@ -102,7 +116,14 @@ function SettingsForm({ settings }: SettingsFormProps) {
     setSaving(true);
     setFeedback(null);
     try {
-      const saved = await userService.updateSettings({ timeFormat, compactMode, notifications });
+      const saved = await userService.updateSettings({
+        timeFormat,
+        compactMode,
+        notifications,
+        firmName: firmName.trim(),
+        investorTitle: investorTitle.trim(),
+        timezone,
+      });
       applyPreferences(saved);
       setFeedback({ type: 'success', text: 'Preferences saved.' });
     } catch (err: unknown) {
@@ -125,6 +146,21 @@ function SettingsForm({ settings }: SettingsFormProps) {
         checked={compactMode}
         onChange={setCompactMode}
       />
+
+      <h3 className="section-title">Investor details</h3>
+      <p className="muted small-hint">Used by the AI agents for email signatures and meeting times.</p>
+      <div className="form-row">
+        <Input label="Firm" value={firmName} onChange={(e) => setFirmName(e.target.value)} placeholder="e.g. Northstar Ventures" />
+        <Input label="Title" value={investorTitle} onChange={(e) => setInvestorTitle(e.target.value)} placeholder="e.g. Partner" />
+      </div>
+      <Select label="Time zone" value={timezone} onChange={(e) => setTimezone(e.target.value)}>
+        {TIMEZONES.map((tz) => (
+          <option key={tz} value={tz}>
+            {tz}
+          </option>
+        ))}
+        {!TIMEZONES.includes(timezone) && <option value={timezone}>{timezone}</option>}
+      </Select>
 
       <h3 className="section-title">Notification preferences</h3>
       <Toggle

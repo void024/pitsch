@@ -10,9 +10,9 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { to: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
+  { to: '/pitches', label: 'Pitches', icon: 'ai' },
   { to: '/tasks', label: 'Tasks', icon: 'tasks' },
   { to: '/calendar', label: 'Calendar', icon: 'calendar' },
-  { to: '/ai', label: 'AI / Workflows', icon: 'ai' },
   { to: '/settings', label: 'Settings', icon: 'settings' },
 ];
 

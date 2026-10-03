@@ -6,7 +6,8 @@ import Dashboard from './pages/dashboard/Dashboard';
 import Tasks from './pages/tasks/Tasks';
 import Calendar from './pages/calendar/Calendar';
 import Settings from './pages/settings/Settings';
-import AIWorkflows from './pages/ai/AIWorkflows';
+import Pitches from './pages/pitches/Pitches';
+import WorkflowDetail from './pages/pitches/WorkflowDetail';
 import './App.css';
 
 export default function App() {
@@ -20,7 +21,9 @@ export default function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/calendar" element={<Calendar />} />
-            <Route path="/ai" element={<AIWorkflows />} />
+            <Route path="/pitches" element={<Pitches />} />
+            <Route path="/workflows/:id" element={<WorkflowDetail />} />
+            <Route path="/ai" element={<Navigate to="/pitches" replace />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
         </Route>
