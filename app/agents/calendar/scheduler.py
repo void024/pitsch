@@ -148,19 +148,25 @@ def _score(c: Candidate, p: CalendarInput, busy, per_day, day: date, first_day: 
     return c
 
 
+SAME_DAY_MIN_GAP = timedelta(minutes=90)
+
+
 def pick(candidates: list[Candidate], n: int) -> list[Candidate]:
-    """Best slots, spread across days first, never overlapping each other."""
+    """Best slots that give the investor real choice:
+    pass 1 — one per day; pass 2 — same day but at least 90 min apart; pass 3 — any non-overlapping."""
     ranked = sorted(candidates, key=lambda c: (-c.score, c.start))
     chosen: list[Candidate] = []
-    days: set[date] = set()
-    for spread in (True, False):
+
+    def far_enough(c: Candidate) -> bool:
+        return all(c.start.date() != x.start.date() or abs(c.start - x.start) >= SAME_DAY_MIN_GAP for x in chosen)
+
+    passes = [lambda c: c.start.date() not in {x.start.date() for x in chosen}, far_enough, lambda c: True]
+    for allowed in passes:
         for c in ranked:
             if len(chosen) >= n:
                 break
             if c in chosen or any(_overlaps(c.start, c.end, x.start, x.end) for x in chosen):
                 continue
-            if spread and c.start.date() in days:
-                continue
-            chosen.append(c)
-            days.add(c.start.date())
+            if allowed(c):
+                chosen.append(c)
     return sorted(chosen, key=lambda c: (-c.score, c.start))

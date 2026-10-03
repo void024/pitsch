@@ -170,10 +170,11 @@ def test_all_searches_failing_is_retryable_error():
 
 
 def test_search_disabled_returns_empty_research_flagged_for_review():
-    llm = FakeLLM([plan()])
+    llm = FakeLLM([])
     d = ResearchAgent(llm, NoSearch(), clock=lambda: NOW).run(request()).data
     assert d.evidence == [] and d.needs_human_review
-    assert len(llm.calls) == 1                                               # no extraction call wasted
+    assert d.claims_without_evidence == ["C1", "C2", "C3"]
+    assert llm.calls == []                                                   # no LLM calls wasted
 
 
 def test_malformed_plan_falls_back_to_standard_queries():

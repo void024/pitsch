@@ -144,3 +144,12 @@ def test_daylight_saving_change_is_handled():
 def test_invalid_timezone_is_rejected():
     with pytest.raises(ValidationError):
         CalendarInput.model_validate({"timezone": "India/Mumbai"})
+
+
+def test_same_day_suggestions_are_spread_out():
+    windows = [{"start": "2026-10-07T13:00:00+05:30", "end": "2026-10-07T17:00:00+05:30"},
+               {"start": "2026-10-08T13:00:00+05:30", "end": "2026-10-08T17:00:00+05:30"}]
+    d = run(founderAvailability=windows, preferredWindows=[{"start": "14:00", "end": "17:00"}])
+    same_day = sorted(local(s)[0] for s in d.slots if local(s)[0].day == 7)
+    assert len(d.slots) == 3
+    assert all(b - a >= timedelta(minutes=90) for a, b in zip(same_day, same_day[1:]))

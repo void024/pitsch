@@ -64,7 +64,7 @@
       "attempts": 1,
       "promptTokens": 100,
       "completionTokens": 20,
-      "latencyMs": 0
+      "latencyMs": 1
     }
   }
 }

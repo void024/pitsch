@@ -97,6 +97,16 @@ class ResearchAgent:
         reserve = min(3, budget // 3) if self.max_rounds > 1 else 0
         round1_cap = budget - reserve
 
+        if getattr(self.search, "name", "") == "none":
+            # No search tool configured: don't spend LLM calls planning searches that can't run.
+            return ResearchOutput(
+                pitch_id=inp.pitch_id, company_name=inp.company_name, search_provider="none", sources=[],
+                evidence=[], competitors=[], queries_run=[], gaps=[],
+                claims_without_evidence=[c.claim_id for c in inp.claims], dropped_evidence_count=0,
+                ignored_source_count=0, needs_human_review=True,
+                review_reasons=["Web search is disabled (SEARCH_PROVIDER=none); no external evidence was collected."],
+                warnings=[])
+
         # Round 1 plan: standard queries from code + claim/market queries from the LLM.
         planned = self._baseline_queries(inp)[:round1_cap]
         try:
@@ -105,9 +115,6 @@ class ResearchAgent:
             if exc.code not in (ErrorCode.MALFORMED_LLM_OUTPUT,):
                 raise
             warnings.append("Query planning failed; only standard queries were used.")
-
-        if getattr(self.search, "name", "") == "none":
-            review.append("Web search is disabled (SEARCH_PROVIDER=none); no external evidence was collected.")
 
         for round_no in range(1, self.max_rounds + 1):
             cap = round1_cap if round_no == 1 else budget - len(queries_run)

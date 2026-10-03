@@ -72,7 +72,7 @@ def test_full_pitch_workflow_over_http():
         routes.get_analysis_agent: lambda: AnalysisAgent(llm, retry_backoff_seconds=0),
         routes.get_calendar_agent: lambda: CalendarAgent(llm, retry_backoff_seconds=0),
         routes.get_email_response_agent: lambda: EmailResponseAgent(llm, retry_backoff_seconds=0),
-        routes.get_action_agent: lambda: ActionAgent(),
+        routes.get_action_agent: lambda: ActionAgent(clock=lambda: NOW),
     }
     app.dependency_overrides.update(overrides)
     client = TestClient(app)
