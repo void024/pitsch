@@ -1,0 +1,68 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/agents/email-response",
+    "body": {
+      "executionId": "102:email-response:9",
+      "traceId": "trace-102",
+      "input": {
+        "pitchId": "7",
+        "purpose": "PROPOSE_MEETING",
+        "recipient": {
+          "email": "ananya@krishiai.in",
+          "name": "Ananya"
+        },
+        "investor": {
+          "name": "Josephine",
+          "firm": "Northstar Ventures"
+        },
+        "companyName": "Krishi AI",
+        "thread": {
+          "subject": "Krishi AI - seed round",
+          "body": "Hi, we're raising a seed round for Krishi AI. Deck attached."
+        },
+        "proposedSlots": [
+          {
+            "start": "2026-10-07T09:30:00+05:30",
+            "end": "2026-10-07T10:00:00+05:30"
+          },
+          {
+            "start": "2026-10-08T09:30:00+05:30",
+            "end": "2026-10-08T10:00:00+05:30"
+          },
+          {
+            "start": "2026-10-09T09:30:00+05:30",
+            "end": "2026-10-09T10:00:00+05:30"
+          }
+        ]
+      }
+    }
+  },
+  "response": {
+    "success": true,
+    "agent": "EMAIL_RESPONSE_AGENT",
+    "data": {
+      "pitchId": "7",
+      "recipient": "ananya@krishiai.in",
+      "recipientName": "Ananya",
+      "subject": "Re: Krishi AI - seed round",
+      "body": "Hi Ananya,\n\nThanks for sharing Krishi AI. Would one of these work?\n\n• Wed, 7 Oct, 9:30 AM–10:00 AM IST\n• Thu, 8 Oct, 9:30 AM–10:00 AM IST\n• Fri, 9 Oct, 9:30 AM–10:00 AM IST\n\nBest regards,\nJosephine\nNorthstar Ventures",
+      "purpose": "PROPOSE_MEETING",
+      "requiresApproval": true,
+      "needsHumanReview": false,
+      "reviewReasons": [],
+      "warnings": []
+    },
+    "error": null,
+    "meta": {
+      "executionId": "102:email-response:9",
+      "traceId": "trace-102",
+      "schemaVersion": "1.0",
+      "model": "fake-model",
+      "attempts": 1,
+      "promptTokens": 100,
+      "completionTokens": 20,
+      "latencyMs": 1
+    }
+  }
+}

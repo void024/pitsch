@@ -1,0 +1,61 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/agents/action",
+    "body": {
+      "executionId": "102:action:11",
+      "traceId": "trace-102",
+      "input": {
+        "workflowId": "102",
+        "event": "EMAIL_APPROVED",
+        "approval": {
+          "approvedBy": "user_12",
+          "approvedAt": "2026-10-05T10:00:00+05:30"
+        },
+        "email": {
+          "recipient": "ananya@krishiai.in",
+          "subject": "Re: Krishi AI - seed round",
+          "body": "Hi Ananya,\n\nThanks for sharing Krishi AI. Would one of these work?\n\n• Wed, 7 Oct, 9:30 AM–10:00 AM IST\n• Thu, 8 Oct, 9:30 AM–10:00 AM IST\n• Fri, 9 Oct, 9:30 AM–10:00 AM IST\n\nBest regards,\nJosephine\nNorthstar Ventures"
+        }
+      }
+    }
+  },
+  "response": {
+    "success": true,
+    "agent": "ACTION_AGENT",
+    "data": {
+      "workflowId": "102",
+      "event": "EMAIL_APPROVED",
+      "actions": [
+        {
+          "actionId": "bdd388d1f7102cea",
+          "type": "GMAIL_SEND_EMAIL",
+          "target": "gmail:send:ananya@krishiai.in",
+          "payload": {
+            "to": "ananya@krishiai.in",
+            "subject": "Re: Krishi AI - seed round",
+            "body": "Hi Ananya,\n\nThanks for sharing Krishi AI. Would one of these work?\n\n• Wed, 7 Oct, 9:30 AM–10:00 AM IST\n• Thu, 8 Oct, 9:30 AM–10:00 AM IST\n• Fri, 9 Oct, 9:30 AM–10:00 AM IST\n\nBest regards,\nJosephine\nNorthstar Ventures",
+            "threadId": null
+          },
+          "requiresApproval": true,
+          "approved": true,
+          "dependsOn": [],
+          "reason": "Investor approved this email draft."
+        }
+      ],
+      "blockedActionIds": [],
+      "warnings": []
+    },
+    "error": null,
+    "meta": {
+      "executionId": "102:action:11",
+      "traceId": "trace-102",
+      "schemaVersion": "1.0",
+      "model": null,
+      "attempts": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "latencyMs": 0
+    }
+  }
+}

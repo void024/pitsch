@@ -1,0 +1,128 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/agents/document",
+    "body": {
+      "executionId": "102:document:3",
+      "traceId": "trace-102",
+      "input": {
+        "pitchId": "7",
+        "companyNameHint": null,
+        "senderEmail": "ananya@krishiai.in",
+        "emailSubject": "Krishi AI seed",
+        "emailBody": "Hi, sharing our deck for the Krishi AI seed round. Would love your thoughts.",
+        "documents": [
+          {
+            "documentId": "att_1",
+            "filename": "deck.pdf",
+            "mimeType": "application/pdf",
+            "text": null,
+            "contentBase64": "<base64 of the PDF file>"
+          }
+        ]
+      }
+    }
+  },
+  "response": {
+    "success": true,
+    "agent": "DOCUMENT_AGENT",
+    "data": {
+      "pitchId": "7",
+      "company": {
+        "name": "Krishi AI",
+        "website": "www.krishiai.in",
+        "sector": "AgriTech",
+        "subSector": null,
+        "stage": "Seed",
+        "location": null,
+        "foundedYear": null,
+        "oneLiner": "AI crop advisory for Indian farmers"
+      },
+      "founders": [
+        {
+          "name": "Ananya Rao",
+          "role": "CEO",
+          "background": null,
+          "linkedinUrl": null
+        }
+      ],
+      "fundraise": {
+        "amountRequested": "$2M",
+        "currency": null,
+        "instrument": "SAFE",
+        "valuation": null,
+        "useOfFunds": []
+      },
+      "productSummary": null,
+      "businessModel": null,
+      "targetCustomers": null,
+      "tractionMetrics": [
+        {
+          "metric": "Farmers onboarded",
+          "value": "12,000",
+          "period": null,
+          "sourceRef": "d1:p2"
+        }
+      ],
+      "claims": [
+        {
+          "claimId": "C1",
+          "text": "The pitch claims 12,000 farmers onboarded.",
+          "category": "TRACTION",
+          "quote": "12,000 farmers onboarded across 3 states",
+          "sourceRef": "d1:p2",
+          "quoteVerified": true,
+          "provenance": "PITCH"
+        },
+        {
+          "claimId": "C2",
+          "text": "The pitch claims market leadership.",
+          "category": "COMPETITION",
+          "quote": "We are the market leader in AI agri-advisory",
+          "sourceRef": "d1:p3",
+          "quoteVerified": true,
+          "provenance": "PITCH"
+        },
+        {
+          "claimId": "C3",
+          "text": "The pitch claims Rs 1.2 Cr ARR.",
+          "category": "FINANCIAL",
+          "quote": "Revenue: Rs 1.2 Cr ARR, growing 40% QoQ",
+          "sourceRef": "d1:p2",
+          "quoteVerified": true,
+          "provenance": "PITCH"
+        }
+      ],
+      "links": [],
+      "missingInformation": [
+        "Burn rate / runway not disclosed"
+      ],
+      "documents": [
+        {
+          "documentId": "att_1",
+          "ref": "d1",
+          "filename": "deck.pdf",
+          "readable": true,
+          "pageCount": 3,
+          "charsExtracted": 227,
+          "warning": null
+        }
+      ],
+      "truncated": false,
+      "needsHumanReview": false,
+      "reviewReasons": [],
+      "warnings": []
+    },
+    "error": null,
+    "meta": {
+      "executionId": "102:document:3",
+      "traceId": "trace-102",
+      "schemaVersion": "1.0",
+      "model": "fake-model",
+      "attempts": 1,
+      "promptTokens": 100,
+      "completionTokens": 20,
+      "latencyMs": 7
+    }
+  }
+}
