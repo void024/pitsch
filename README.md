@@ -60,20 +60,27 @@ The service includes:
 
 ## Run locally
 
+Requires **Python 3.10+**.
+
 ```bash
 python -m venv .venv
-# Windows:
-.venv\Scripts\activate
-# Linux/macOS:
-source .venv/bin/activate
 
-pip install -r requirements.txt
+# Windows
+.venv\Scripts\activate
 copy .env.example .env
+
+# macOS / Linux
+source .venv/bin/activate
+cp .env.example .env
+
+pip install -r requirements-dev.txt   # runtime + test dependencies
 # edit .env with your LLM credentials/model
 
-pytest -q
+pytest -q                              # runs offline with a fake LLM — no API key needed
 uvicorn app.main:app --reload --port 8000
 ```
+
+Interactive API docs: `http://localhost:8000/docs`
 
 Health check:
 
@@ -93,6 +100,7 @@ The API accepts/returns camelCase JSON so it can be called cleanly from the Spri
 
 ```text
 pitsch-ai/
+├── .github/workflows/tests.yml   # CI: runs pytest on every push / PR
 ├── app/
 │   ├── main.py
 │   ├── config.py
@@ -117,9 +125,11 @@ pitsch-ai/
 ├── evals/
 │   └── README.md
 ├── .env.example
+├── .gitattributes
 ├── .gitignore
 ├── pytest.ini
-└── requirements.txt
+├── requirements.txt              # runtime dependencies
+└── requirements-dev.txt          # + test dependencies
 ```
 
 ## Important integration contract
@@ -132,6 +142,10 @@ Spring Boot should generate a deterministic `executionId`, for example:
 
 and a request-scoped `traceId`.
 
+IDs (`pitchId`, `previousPitchId`, etc.) may be sent as JSON numbers or strings. They are
+treated as strings internally and returned as strings (`"42"`); Jackson maps these back to
+`Long` without extra configuration.
+
 The AI service returns `success=false` inside the response envelope for handled agent failures;
 Spring Boot can inspect `error.retryable` to decide whether the workflow step should be retried.
 
@@ -141,6 +155,16 @@ Email text is untrusted input. It is fenced and neutralized before being placed 
 The agent must never follow instructions embedded inside email content.
 
 Never put API keys, OAuth credentials, full email bodies or extracted deck text into logs.
+
+## Working on this repo
+
+- `main` should always pass `pytest`. CI checks every push and pull request.
+- Work on a branch per agent or feature, e.g. `agent/document`, `fix/classifier-threshold`,
+  then open a pull request into `main`.
+- Never commit `.env`, API keys, OAuth tokens or real email/deck content. `.gitignore`
+  already excludes `.env` and `evals/data/private/`.
+- If you change an agent's input/output schema, update its doc in `docs/` and tell the
+  backend team: that schema is the integration contract.
 
 ## Next steps
 
