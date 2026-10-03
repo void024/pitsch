@@ -246,3 +246,23 @@ def test_pitch_update_is_not_auto_processed():
     assert d.category == EmailCategory.PITCH_UPDATE
     assert d.is_follow_up
     assert d.recommended_action == RecommendedAction.ASK_TO_HANDLE
+
+
+# ---------- contract regressions ----------
+
+def test_prompt_asks_model_for_every_field_the_agent_relies_on():
+    from app.agents.classifier.prompt import SYSTEM_PROMPT
+    from app.agents.classifier.schemas import ClassifierLLMOutput
+    for field in ClassifierLLMOutput.model_fields:
+        assert f'"{field}"' in SYSTEM_PROMPT, f"prompt never asks the model for {field}"
+
+
+def test_numeric_pitch_ids_from_spring_boot_are_accepted():
+    numeric = PitchCandidate.model_validate(
+        {"pitchId": 42, "companyName": "Krishi AI", "founderEmails": ["ananya@krishiai.in"]}
+    )
+    assert numeric.pitch_id == "42"
+    agent, _ = make_agent([llm_output(category="PITCH_FOLLOW_UP", previous_pitch_id=42)])
+    d = agent.run(make_request(candidates=[numeric])).data
+    assert d.previous_pitch_id == "42"
+    assert d.is_follow_up and not d.needs_human_review

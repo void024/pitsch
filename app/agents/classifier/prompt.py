@@ -11,6 +11,7 @@ OUTPUT_SHAPE = """{
   "is_forwarded": false,
   "original_sender_email": "founder's address if forwarded and visible, else null",
   "meeting_requested": false,
+  "workflow_closed": false,
   "confidence": 0.0,
   "reason": "one or two sentences citing specific evidence"
 }"""
@@ -48,9 +49,11 @@ original_sender_email to the founder's address if it is visible.
 pitched, use AMBIGUOUS.
 5. A pitch with no attachment, or an unreadable attachment, is still a pitch. Mention it in reason.
 6. meeting_requested is true only if the sender explicitly asks for or agrees to a call or meeting.
-7. confidence is your probability (0 to 1) that the category is correct. Use lower values when the \
+7. workflow_closed is true only for PITCH_FOLLOW_UP emails where the sender explicitly ends the \
+conversation (round closed, no longer fundraising, withdrawing the pitch). Otherwise false.
+8. confidence is your probability (0 to 1) that the category is correct. Use lower values when the \
 email is short, vague, or the signals conflict.
-8. reason: one or two plain sentences citing specific evidence. No investment opinions.
+9. reason: one or two plain sentences citing specific evidence. No investment opinions.
 
 OUTPUT
 Return only a JSON object with exactly these keys:

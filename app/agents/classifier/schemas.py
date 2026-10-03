@@ -85,7 +85,8 @@ class MatchSignal(CamelModel):
 # ---------- What the LLM must return (snake_case, matches the prompt) ----------
 
 class ClassifierLLMOutput(BaseModel):
-    model_config = ConfigDict(extra="ignore")
+    # Models often echo numeric-looking IDs as numbers (42 instead of "42"); accept both.
+    model_config = ConfigDict(extra="ignore", coerce_numbers_to_str=True)
 
     category: EmailCategory
     not_pitch_type: NotPitchType | None = None

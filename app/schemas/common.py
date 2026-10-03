@@ -11,9 +11,13 @@ DataT = TypeVar("DataT")
 
 
 class CamelModel(BaseModel):
-    """Accepts and emits camelCase JSON (for Spring Boot) while Python code uses snake_case."""
+    """Accepts and emits camelCase JSON (for Spring Boot) while Python code uses snake_case.
 
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    coerce_numbers_to_str: Spring Boot usually sends IDs as JSON numbers (Long), e.g. pitchId: 42.
+    We accept them and treat every ID as a string internally.
+    """
+
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, coerce_numbers_to_str=True)
 
 
 class AgentRequest(CamelModel, Generic[InputT]):
