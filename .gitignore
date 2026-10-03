@@ -34,3 +34,6 @@ evals/results/
 Thumbs.db
 .idea/
 .vscode/
+
+# Demo script output
+demo_output/

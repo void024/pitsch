@@ -68,13 +68,42 @@ source .venv/bin/activate
 cp .env.example .env
 
 pip install -r requirements-dev.txt    # runtime + test dependencies
-# edit .env: LLM_API_KEY, LLM_MODEL (and TAVILY_API_KEY for web research)
-
 pytest -q                               # 100% offline: fake LLM + fake search, no keys needed
-uvicorn app.main:app --reload --port 8000
 ```
 
-Interactive API docs: `http://localhost:8000/docs` · Health check: `GET /health`
+### Connect Gemini (and web search)
+
+1. Create a Gemini API key at **https://aistudio.google.com/apikey** (sign in with your Google
+   account). The API is billed separately from a Google AI Pro subscription, but it has a free
+   tier. Google AI Pro subscribers can also activate monthly Google Cloud credits through the
+   Google Developer Program, which can pay for Gemini API calls (higher limits, and paid-tier
+   data isn't used for training).
+2. In `.env`: `LLM_PROVIDER=gemini`, `LLM_API_KEY=<your key>`, `LLM_MODEL=<a Gemini model ID>`.
+3. Optional but needed for real research: a free Tavily key at https://tavily.com → `TAVILY_API_KEY`.
+4. Check everything works:
+
+```bash
+python -m scripts.check_llm --list-models   # which model IDs your key can use
+python -m scripts.check_llm                 # one test call per model + Tavily check
+```
+
+5. Run the research pipeline on a real pitch and read the brief:
+
+```bash
+python -m scripts.demo_pitch --deck path/to/deck.pdf --domain company.com
+# -> demo_output/brief.md (+ every agent's JSON)
+```
+
+6. Start the API for the backend: `uvicorn app.main:app --reload --port 8000` → docs at
+   `http://localhost:8000/docs`.
+
+Notes for Gemini:
+- The free tier's content may be used by Google to improve its products — use sample or public
+  pitches for demos, not confidential decks. Free-tier limits aren't fixed; on HTTP 429 the agents
+  wait for the delay Gemini asks for and retry.
+- Temperature is left at Gemini's default on purpose (Google recommends 1.0 for Gemini 3 models).
+- `LLM_REASONING_EFFORT=low` keeps responses fast; raise it for the Analysis agent if you want
+  deeper synthesis (e.g. with a separate `ANALYSIS_LLM_MODEL`).
 
 The service refuses to start if `LLM_API_KEY` / `LLM_MODEL` are missing. Without `TAVILY_API_KEY`,
 research still runs but collects no web evidence (and flags that for review).
@@ -119,6 +148,9 @@ pitsch-ai/
 │       ├── base.py             # shared run wrapper (envelope, meta, logs, crash handling)
 │       ├── classifier/  document/  research/  verification/
 │       └── analysis/  calendar/  email_response/  action/
+├── scripts/
+│   ├── check_llm.py            # verify your Gemini/LLM + Tavily keys work
+│   └── demo_pitch.py           # run Document→Research→Verification→Analysis on a real deck
 ├── tests/                      # one file per agent + end-to-end pipeline test
 ├── docs/
 │   ├── agents.md               # how each agent works (read this first)
