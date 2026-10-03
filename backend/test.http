@@ -1,0 +1,10 @@
+### Create a pitch
+POST http://localhost:8080/api/pitches
+Content-Type: application/json
+
+{
+    "title": "AI Deal Flow",
+    "description": "An AI system that helps investors manage and analyze startup pitches.",
+    "founderName": "Ayush",
+    "email": "ayush@example.com"
+}
