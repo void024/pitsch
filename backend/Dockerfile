@@ -1,5 +1,5 @@
 # ---- Build: compile and package the Spring Boot jar ----
-FROM eclipse-temurin:21-jdk-jammy AS build
+FROM eclipse-temurin:25-jdk-jammy AS build
 WORKDIR /workspace
 COPY .mvn .mvn
 COPY mvnw pom.xml ./
@@ -9,7 +9,7 @@ RUN ./mvnw -B -q -DskipTests package \
  && java -Djarmode=tools -jar target/pitsch-backend.jar extract --layers --launcher --destination target/extracted
 
 # ---- Runtime: JRE only, non-root, layered jar for small rebuilds ----
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 RUN addgroup -S -g 10001 pitsch && adduser -S -u 10001 -G pitsch pitsch
 WORKDIR /app
 COPY --from=build --chown=pitsch:pitsch /workspace/target/extracted/dependencies/ ./
