@@ -94,8 +94,10 @@ python -m scripts.demo_pitch --deck path/to/deck.pdf --domain company.com
 # -> demo_output/brief.md (+ every agent's JSON)
 ```
 
-6. Start the API for the backend: `uvicorn app.main:app --reload --port 8000` → docs at
-   `http://localhost:8000/docs`.
+6. Start the API for the backend: `PITSCH_MODE=development uvicorn app.main:app --reload --port 8000` → docs at
+   `http://localhost:8000/docs`. In production (`PITSCH_MODE` unset = `production`) the service refuses to start
+   without `AI_SERVICE_TOKEN` (≥ 32 chars, the same value as the backend's), requires `X-Internal-Token` on every
+   `/agents/*` call, and hides `/docs`. Run it on a private network only (see `Dockerfile`).
 
 Notes for Gemini:
 - The free tier's content may be used by Google to improve its products — use sample or public
@@ -119,7 +121,8 @@ Every endpoint takes and returns the same envelope:
 // response
 { "success": true, "agent": "RESEARCH_AGENT", "data": { ... }, "error": null,
   "meta": { "executionId": "...", "traceId": "...", "model": "...", "attempts": 2,
-            "promptTokens": 5120, "completionTokens": 830, "latencyMs": 4210 } }
+            "promptTokens": 5120, "completionTokens": 830, "latencyMs": 4210,
+            "estimatedCostUsd": 0.0031, "inputHash": "…", "fallbackUsed": false } }
 
 // handled failure (HTTP 200)
 { "success": false, "agent": "RESEARCH_AGENT", "data": null,
@@ -141,8 +144,9 @@ pitsch-ai/
 │   │   ├── search.py           # SearchProvider interface + Tavily
 │   │   ├── guardrails.py       # no-recommendation / no-commitment detectors
 │   │   ├── text.py             # quote/URL/domain checks, prompt fencing
+│   │   ├── injection.py        # prompt-injection heuristics (flag + route to human review)
 │   │   ├── errors.py           # error codes
-│   │   └── logging.py          # JSON logs, never content
+│   │   └── logging.py          # JSON logs with request id, secret redaction, never content
 │   ├── schemas/common.py       # AgentRequest / AgentResult envelope
 │   └── agents/
 │       ├── base.py             # shared run wrapper (envelope, meta, logs, crash handling)
@@ -157,14 +161,15 @@ pitsch-ai/
 │   ├── integration.md          # contract for the Spring Boot backend
 │   ├── email-classifier.md
 │   └── examples/               # recorded request/response for every step
-├── evals/                      # labelled evaluation sets (to be built)
-├── .github/workflows/tests.yml # CI
+├── evals/                      # datasets + runner (offline in CI, live before prompt/model changes)
+├── Dockerfile                  # production image (non-root)
 ├── .env.example  requirements.txt  requirements-dev.txt  pytest.ini
 ```
 
 ## Working on this repo
 
-- `main` should always pass `pytest`. CI checks every push and pull request.
+- `main` should always pass `pytest` and `python -m evals.run_evals`. CI (repository root `.github/`) checks every
+  push and pull request.
 - Work on a branch per change, e.g. `agent/research-serper`, `fix/calendar-lunch`, and open a pull request.
 - Never commit `.env`, API keys, OAuth tokens or real email/deck content.
 - If you change an agent's input/output schema, regenerate the examples
@@ -174,7 +179,7 @@ pitsch-ai/
 ## Status and next steps
 
 - [x] All eight agents with offline tests (fake LLM/search) and an end-to-end pipeline test
-- [ ] Real-model evaluation sets in `evals/` (accuracy, latency, cost per pitch)
-- [ ] Calibrate `CLASSIFIER_REVIEW_THRESHOLD` on labelled emails
-- [ ] Spring Boot integration test against a running service
+- [x] Service authentication, request limits, fallback model, cost and input-hash metadata, injection detection
+- [x] Evaluation suite in `evals/` (offline metrics in CI; live accuracy/latency/cost runner)
+- [ ] Grow the live datasets with real (consented, anonymised) emails and calibrate `CLASSIFIER_REVIEW_THRESHOLD`
 - [ ] Optional: OCR for scanned decks; a second search provider for cross-checking

@@ -14,7 +14,9 @@ import com.pitsch.backend.auth.User;
 import com.pitsch.backend.common.Json;
 import com.pitsch.backend.email.Email;
 import com.pitsch.backend.email.EmailAttachment;
-import com.pitsch.backend.event.CalendarEvent;
+import com.pitsch.backend.files.FileService;
+import com.pitsch.backend.files.StoredFileRepository;
+import com.pitsch.backend.org.Organization;
 import com.pitsch.backend.pitch.Pitch;
 import com.pitsch.backend.user.UserSettings;
 import org.springframework.stereotype.Component;
@@ -26,11 +28,18 @@ import org.springframework.stereotype.Component;
 @Component
 public class AgentInputs {
 
+    /** A busy interval in the investor's calendar (Google free/busy or Pitsch events). */
+    public record BusyInterval(Instant start, Instant end) { }
+
     private static final int MAX_DOCUMENTS = 10;
     private final Json json;
+    private final FileService files;
+    private final StoredFileRepository storedFiles;
 
-    public AgentInputs(Json json) {
+    public AgentInputs(Json json, FileService files, StoredFileRepository storedFiles) {
         this.json = json;
+        this.files = files;
+        this.storedFiles = storedFiles;
     }
 
     // ---------------- 1. Email Classifier ----------------
@@ -54,7 +63,7 @@ public class AgentInputs {
             n.put("filename", a.getFilename());
             n.put("mimeType", a.getMimeType());
             n.put("sizeBytes", a.getSizeBytes());
-            n.put("readable", a.getContentBase64() != null && !a.getContentBase64().isBlank());
+            n.put("readable", a.getStoredFileId() != null || (a.getContentBase64() != null && !a.getContentBase64().isBlank()));
         }
         ArrayNode cands = in.putArray("candidatePitches");
         for (Pitch p : candidates.subList(0, Math.min(20, candidates.size()))) {
@@ -86,14 +95,18 @@ public class AgentInputs {
         in.put("emailBody", nz(email.getBody()));
         ArrayNode docs = in.putArray("documents");
         for (EmailAttachment a : attachments) {
-            if (docs.size() >= MAX_DOCUMENTS || a.getContentBase64() == null || a.getContentBase64().isBlank()) {
+            if (docs.size() >= MAX_DOCUMENTS) {
+                break;
+            }
+            String content = content(a);
+            if (content == null) {
                 continue;
             }
             ObjectNode d = docs.addObject();
             d.put("documentId", "att_" + a.getId());
             d.put("filename", a.getFilename());
             d.put("mimeType", a.getMimeType());
-            d.put("contentBase64", a.getContentBase64());
+            d.put("contentBase64", content);
         }
         return in;
     }
@@ -144,19 +157,27 @@ public class AgentInputs {
 
     // ---------------- 6. Calendar Agent ----------------
 
-    public ObjectNode calendar(Pitch pitch, Email email, JsonNode classification, String timezone,
-                               List<CalendarEvent> busy, Integer durationMinutes) {
+    public ObjectNode calendar(Pitch pitch, Email email, JsonNode classification, String timezone, Organization org,
+                               List<BusyInterval> busy, Integer durationMinutes) {
         ObjectNode in = json.obj();
         in.put("pitchId", String.valueOf(pitch.getId()));
         in.put("timezone", timezone);
-        if (durationMinutes != null) {
-            in.put("durationMinutes", Math.max(15, Math.min(240, durationMinutes)));
+        in.put("durationMinutes", Math.max(15, Math.min(240,
+                durationMinutes != null ? durationMinutes : org.getMeetingDurationMinutes())));
+        ObjectNode hours = in.putObject("workingHours");
+        hours.put("start", org.getWorkingHoursStart());
+        hours.put("end", org.getWorkingHoursEnd());
+        ArrayNode days = hours.putArray("days");
+        for (String d : org.getWorkingDays().split(",")) {
+            days.add(d.trim());
         }
         ArrayNode b = in.putArray("busy");
-        for (CalendarEvent e : busy.subList(0, Math.min(500, busy.size()))) {
-            ObjectNode n = b.addObject();
-            n.put("start", e.getStartTime().toString());
-            n.put("end", e.getEndTime().toString());
+        for (BusyInterval e : busy.subList(0, Math.min(500, busy.size()))) {
+            if (e.end().isAfter(e.start())) {
+                ObjectNode n = b.addObject();
+                n.put("start", e.start().toString());
+                n.put("end", e.end().toString());
+            }
         }
         if (Json.bool(classification, "meetingRequested") && email.getBody() != null && !email.getBody().isBlank()) {
             in.put("founderAvailabilityText", Json.truncate(email.getBody(), 4000));
@@ -251,6 +272,16 @@ public class AgentInputs {
     }
 
     // ---------------- helpers ----------------
+
+    /** Attachment bytes as base64 from object storage (or the legacy in-database copy). */
+    private String content(EmailAttachment a) {
+        if (a.getStoredFileId() != null) {
+            return storedFiles.findById(a.getStoredFileId())
+                    .map(f -> java.util.Base64.getEncoder().encodeToString(files.read(f)))
+                    .orElse(null);
+        }
+        return a.getContentBase64() == null || a.getContentBase64().isBlank() ? null : a.getContentBase64();
+    }
 
     private static final DateTimeFormatter ISO_WITH_SECONDS = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssXXX");
 

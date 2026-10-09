@@ -38,11 +38,45 @@ public class FakeAiClient implements AiClient {
         this.om = om;
     }
 
+    /** When set, calls to this agent fail with a non-retryable error (to test failure paths). */
+    public volatile Agent failing;
+
     @Override
     public synchronized AgentResult call(Agent agent, String executionId, String traceId, JsonNode input) {
         calls.add(new Call(agent, executionId, input));
+        if (agent == failing) {
+            return AgentResult.failure(agent.name(), "LLM_API_ERROR", "simulated provider failure", false);
+        }
         JsonNode data = agent == Agent.ACTION_AGENT ? actions(input) : example(agent).path("response").path("data");
-        return new AgentResult(true, agent.name(), data, null, null, false, om.createObjectNode());
+        if (agent == Agent.CALENDAR_AGENT) {
+            data = futureSlots(data.deepCopy());
+        }
+        ObjectNode meta = om.createObjectNode();
+        meta.put("model", "fake-model");
+        meta.put("promptTokens", 100);
+        meta.put("completionTokens", 50);
+        meta.put("latencyMs", 5);
+        meta.put("attempts", 1);
+        meta.put("estimatedCostUsd", 0.0001);
+        return new AgentResult(true, agent.name(), data, null, null, false, meta);
+    }
+
+    public synchronized void reset() {
+        calls.clear();
+        failing = null;
+    }
+
+    /** Recorded slots have fixed dates; move them to the coming days so they stay in the future. */
+    private JsonNode futureSlots(JsonNode data) {
+        java.time.Instant base = java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.HOURS)
+                .plus(java.time.Duration.ofDays(3));
+        int i = 0;
+        for (JsonNode slot : data.path("slots")) {
+            java.time.Instant start = base.plus(java.time.Duration.ofDays(i++));
+            ((ObjectNode) slot).put("start", start.toString());
+            ((ObjectNode) slot).put("end", start.plus(java.time.Duration.ofMinutes(30)).toString());
+        }
+        return data;
     }
 
     @Override
@@ -50,7 +84,7 @@ public class FakeAiClient implements AiClient {
         return true;
     }
 
-    public List<Call> callsTo(Agent agent) {
+    public synchronized List<Call> callsTo(Agent agent) {
         return calls.stream().filter(c -> c.agent() == agent).toList();
     }
 

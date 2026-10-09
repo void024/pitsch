@@ -4,8 +4,8 @@ from app.agents.analysis.schemas import Brief, Finding
 
 PROVENANCE_TAG = {"PITCH": "🟣 Pitch", "COMPANY": "🔵 Company", "EXTERNAL": "🟢 External",
                   "AI_INFERENCE": "🟠 AI inference"}
-STATUS_TAG = {"VERIFIED": "✅ Verified", "PARTIALLY_VERIFIED": "🟡 Partially verified",
-              "UNVERIFIED": "⚪ Unverified", "CONTRADICTED": "❌ Contradicted",
+STATUS_TAG = {"SUPPORTED": "✅ Supported", "PARTIALLY_SUPPORTED": "🟡 Partially supported",
+              "UNSUPPORTED": "⚪ Unsupported", "CONTRADICTED": "❌ Contradicted",
               "NOT_FOUND": "❔ Not found", "NOT_CHECKED": "— Not checked"}
 
 
@@ -27,7 +27,16 @@ def render_markdown(company: str | None, brief: Brief, disclaimer: str) -> str:
     out = [f"# Research Brief: {company or 'Unknown company'}", "",
            "Legend: " + " · ".join(PROVENANCE_TAG.values()), ""]
 
+    if brief.generated_at:
+        out += [f"_Last updated: {brief.generated_at.strftime('%Y-%m-%d %H:%M UTC')}_", ""]
     out += _findings("Summary", brief.executive_summary)
+    if brief.ai_confidence:
+        c = brief.ai_confidence
+        out += [f"**Evidence support for this brief:** {c.level.title()} ({c.score:.2f}) — " + " ".join(c.reasons),
+                "", f"_{c.note}_", ""]
+    out += _findings("Problem", brief.problem)
+    out += _findings("Solution", brief.solution)
+    out += _findings("Product", brief.product)
 
     if brief.company_overview:
         out += ["## Company overview", "", "| Field | Information | Source |", "|---|---|---|"]
@@ -40,7 +49,7 @@ def render_markdown(company: str | None, brief: Brief, disclaimer: str) -> str:
                 "|---|---|---|---|---|"]
         for r in brief.claims_matrix:
             srcs = ", ".join(f"[{e.evidence_id}]({e.source_url})" for e in r.supporting + r.contradicting) or "—"
-            status = STATUS_TAG.get(r.status, r.status) + (" ⚠️ dated" if r.evidence_outdated else "")
+            status = STATUS_TAG.get(r.assessment, r.assessment) + (" ⚠️ dated" if r.evidence_outdated else "")
             out.append(f"| {r.claim_id} | {_cell(r.claim)} | {status} | {_cell(r.finding) or '—'} | {srcs} |")
         out.append("")
 
@@ -49,17 +58,31 @@ def render_markdown(company: str | None, brief: Brief, disclaimer: str) -> str:
         out += [f"| {_cell(m.metric)} | {_cell(m.value)} | {_cell(m.period) or '—'} |" for m in brief.traction_metrics]
         out.append("")
 
+    out += _findings("Business model", brief.business_model)
     out += _findings("Market", brief.market)
     out += _findings("Competition", brief.competition)
     if brief.competitors:
         out += ["**Competitors identified:** " + ", ".join(c.name for c in brief.competitors), ""]
     out += _findings("Founders", brief.founders)
     out += _findings("Funding history", brief.funding_history)
+    if brief.fundraising:
+        f = brief.fundraising
+        parts = [("Raising", f.amount_requested), ("Currency", f.currency), ("Instrument", f.instrument),
+                 ("Valuation", f.valuation), ("Use of funds", "; ".join(f.use_of_funds) or None)]
+        out += ["## Fundraising (as stated in the pitch)", ""]
+        out += [f"- **{k}:** {_cell(v)}" for k, v in parts if v]
+        out.append("")
+    out += _findings("Opportunities (conditional, 🟠 AI synthesis)", brief.opportunities)
 
     if brief.risks:
         out += ["## Risks and considerations (🟠 AI inference)", ""]
         out += [f"- **{r.category.title()}:** {r.risk}" + (f" [{', '.join(r.citations)}]" if r.citations else "")
                 for r in brief.risks]
+        out.append("")
+
+    if brief.missing_information:
+        out += ["## Missing information", ""]
+        out += [f"- {_cell(m)}" for m in brief.missing_information]
         out.append("")
 
     if brief.open_questions:

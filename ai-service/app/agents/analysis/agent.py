@@ -1,7 +1,11 @@
 from app.agents.analysis.prompt import SYSTEM_PROMPT
 from app.agents.analysis.render import render_markdown
+from datetime import datetime, timezone
+from typing import Callable
+
 from app.agents.analysis.schemas import (
     NOT_CHECKED,
+    AIConfidence,
     AnalysisInput,
     AnalysisLLMOutput,
     AnalysisOutput,
@@ -13,6 +17,7 @@ from app.agents.analysis.schemas import (
     OverviewRow,
     Risk,
     SourceRef,
+    assessment_for,
 )
 from app.agents.base import execute
 from app.agents.document.schemas import DocumentOutput, Provenance
@@ -44,10 +49,15 @@ class AnalysisAgent:
     provenance from its citations, so an uncited statement is visibly labelled AI_INFERENCE.
     """
 
-    def __init__(self, llm: LLMClient, *, max_retries: int = 2, retry_backoff_seconds: float = 0.5):
+    NARRATIVE_SECTIONS = ("executive_summary", "problem", "solution", "product", "business_model", "market",
+                          "competition", "founders", "funding_history", "opportunities")
+
+    def __init__(self, llm: LLMClient, *, max_retries: int = 2, retry_backoff_seconds: float = 0.5,
+                 clock: Callable[[], datetime] = lambda: datetime.now(timezone.utc)):
         self.llm = llm
         self.max_retries = max_retries
         self.retry_backoff_seconds = retry_backoff_seconds
+        self.clock = clock
 
     def run(self, request: AgentRequest[AnalysisInput]) -> AgentResult[AnalysisOutput]:
         return execute(AGENT_NAME, request, AnalysisOutput, self._analyse,
@@ -89,8 +99,7 @@ class AnalysisAgent:
                                    provenance=self._provenance(cites, evidence)))
             return out
 
-        brief_sections = {k: findings(getattr(raw, k)) for k in
-                          ("executive_summary", "market", "competition", "founders", "funding_history")}
+        brief_sections = {k: findings(getattr(raw, k)) for k in self.NARRATIVE_SECTIONS}
         risks = [Risk(risk=r.risk, category=r.category.upper(), citations=clean(r.citations)) for r in raw.risks]
         questions = self._open_questions(doc, research, claims_matrix)
         seen = {normalize(q.question) for q in questions}
@@ -121,6 +130,9 @@ class AnalysisAgent:
                              possibly_outdated=s.possibly_outdated)
                    for s in (research.sources if research else []) if s.source_id in cited_sources]
 
+        fundraise = doc.fundraise
+        has_fundraise = any((fundraise.amount_requested, fundraise.instrument, fundraise.valuation, fundraise.use_of_funds))
+        total_statements = sum(len(sec) for sec in brief_sections.values())
         brief = Brief(
             company_overview=self._overview(doc),
             claims_matrix=claims_matrix,
@@ -129,15 +141,22 @@ class AnalysisAgent:
             risks=risks,
             open_questions=questions,
             sources=sources,
+            fundraising=fundraise if has_fundraise else None,
+            missing_information=list(doc.missing_information),
+            ai_confidence=self._confidence(claims_matrix, research, sources, uncited, total_statements, review),
+            generated_at=self.clock(),
             **brief_sections,
         )
         summary = {}
+        assessments = {}
         for row in claims_matrix:
             summary[row.status] = summary.get(row.status, 0) + 1
+            assessments[row.assessment] = assessments.get(row.assessment, 0) + 1
 
         return AnalysisOutput(
             pitch_id=inp.pitch_id or doc.pitch_id, company_name=doc.company.name, brief=brief,
             markdown=render_markdown(doc.company.name, brief, DISCLAIMER), claim_status_summary=summary,
+            claim_assessment_summary=assessments,
             disclaimer=DISCLAIMER, needs_human_review=bool(review), review_reasons=review, warnings=warnings,
         )
 
@@ -172,15 +191,52 @@ class AnalysisAgent:
         rows = []
         for c in doc.claims:
             r = results.get(c.claim_id)
+            status = r.status.value if r else NOT_CHECKED
             rows.append(ClaimRow(
                 claim_id=c.claim_id, claim=c.text, category=c.category.value,
-                status=r.status.value if r else NOT_CHECKED,
+                status=status, assessment=assessment_for(status),
                 independently_verified=r.independently_verified if r else False,
                 finding=r.finding if r else None, evidence_outdated=r.evidence_outdated if r else False,
                 supporting=links(r.supporting_evidence_ids) if r else [],
                 contradicting=links(r.contradicting_evidence_ids) if r else [],
             ))
         return rows
+
+    @staticmethod
+    def _confidence(matrix: list[ClaimRow], research, sources: list[SourceRef], uncited: int,
+                    total_statements: int, review: list[str]) -> AIConfidence:
+        """Deterministic support score for the brief (not for the company)."""
+        reasons: list[str] = []
+        n = len(matrix)
+        checked = [r for r in matrix if r.assessment != NOT_CHECKED]
+        supported = sum(1 for r in checked if r.assessment == "SUPPORTED") + \
+            0.5 * sum(1 for r in checked if r.assessment == "PARTIALLY_SUPPORTED")
+        contradicted = sum(1 for r in checked if r.assessment == "CONTRADICTED")
+        external = sum(1 for s in sources if s.source_type == "EXTERNAL")
+        support_ratio = supported / n if n else 0.0
+
+        score = 0.15
+        score += 0.35 * support_ratio
+        score += 0.15 if research is not None else 0.0
+        score += 0.15 * min(external, 4) / 4
+        score += 0.20 * (1 - (uncited / total_statements if total_statements else 1))
+        score -= 0.05 * min(contradicted, 3)
+        score -= 0.05 if review else 0.0
+        score = max(0.0, min(1.0, score))
+
+        if n:
+            reasons.append(f"{len(checked)} of {n} pitch claims were checked; {supported:g} supported, "
+                           f"{contradicted} contradicted.")
+        else:
+            reasons.append("No checkable claims were extracted from the pitch.")
+        reasons.append("Web research was run." if research is not None else "No web research was available.")
+        reasons.append(f"{external} independent external source(s) are cited.")
+        if total_statements:
+            reasons.append(f"{total_statements - uncited} of {total_statements} brief statements cite their basis.")
+        if review:
+            reasons.append("Some upstream results were flagged for human review.")
+        level = "HIGH" if score >= 0.7 else "MEDIUM" if score >= 0.4 else "LOW"
+        return AIConfidence(level=level, score=round(score, 2), reasons=reasons)
 
     @staticmethod
     def _open_questions(doc: DocumentOutput, research, matrix: list[ClaimRow]) -> list[OpenQuestion]:

@@ -2,7 +2,6 @@ package com.pitsch.backend.auth;
 
 import java.time.Instant;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -12,6 +11,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
+/** A person. Workspace access comes from memberships; this entity is never serialised directly. */
 @Entity
 @Table(name = "users")
 public class User {
@@ -26,12 +26,19 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @JsonIgnore
+    /** "pbkdf2$iterations$salt$hash", or "!" for accounts that only sign in with Google. */
     @Column(nullable = false)
     private String passwordHash;
 
-    private String role = "INVESTOR";
+    private Instant emailVerifiedAt;
 
+    @Column(nullable = false)
+    private int failedLoginAttempts;
+
+    private Instant lockedUntil;
+    private Instant lastLoginAt;
+    private Instant passwordChangedAt;
+    private Long defaultOrganizationId;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -46,6 +53,14 @@ public class User {
         updatedAt = Instant.now();
     }
 
+    public boolean isEmailVerified() {
+        return emailVerifiedAt != null;
+    }
+
+    public boolean isLocked(Instant now) {
+        return lockedUntil != null && lockedUntil.isAfter(now);
+    }
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     public String getName() { return name; }
@@ -54,8 +69,18 @@ public class User {
     public void setEmail(String email) { this.email = email; }
     public String getPasswordHash() { return passwordHash; }
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
-    public String getRole() { return role; }
-    public void setRole(String role) { this.role = role; }
+    public Instant getEmailVerifiedAt() { return emailVerifiedAt; }
+    public void setEmailVerifiedAt(Instant v) { this.emailVerifiedAt = v; }
+    public int getFailedLoginAttempts() { return failedLoginAttempts; }
+    public void setFailedLoginAttempts(int v) { this.failedLoginAttempts = v; }
+    public Instant getLockedUntil() { return lockedUntil; }
+    public void setLockedUntil(Instant v) { this.lockedUntil = v; }
+    public Instant getLastLoginAt() { return lastLoginAt; }
+    public void setLastLoginAt(Instant v) { this.lastLoginAt = v; }
+    public Instant getPasswordChangedAt() { return passwordChangedAt; }
+    public void setPasswordChangedAt(Instant v) { this.passwordChangedAt = v; }
+    public Long getDefaultOrganizationId() { return defaultOrganizationId; }
+    public void setDefaultOrganizationId(Long v) { this.defaultOrganizationId = v; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }

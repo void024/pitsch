@@ -2,7 +2,6 @@ package com.pitsch.backend.activity;
 
 import java.time.Instant;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -11,7 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
-/** Audit / activity log entry. type: TASK | EVENT | WORKFLOW | SYSTEM (frontend ActivityType). */
+/** Human-readable activity feed entry (the immutable security/audit record lives in audit_events). */
 @Entity
 @Table(name = "activities")
 public class Activity {
@@ -20,12 +19,15 @@ public class Activity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @JsonIgnore
+    @Column(nullable = false)
+    private Long organizationId;
+
     private Long userId;
 
     @Column(length = 1000)
     private String message;
 
+    /** TASK | EVENT | WORKFLOW | SYSTEM | INTEGRATION */
     private String type;
 
     private Instant createdAt;
@@ -36,6 +38,8 @@ public class Activity {
     }
 
     public Long getId() { return id; }
+    public Long getOrganizationId() { return organizationId; }
+    public void setOrganizationId(Long v) { this.organizationId = v; }
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
     public String getMessage() { return message; }

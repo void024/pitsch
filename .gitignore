@@ -1,10 +1,132 @@
-# Secrets — never commit
+# ==============================
+# SECRETS — NEVER COMMIT
+# ==============================
 .env
 .env.*
 !.env.example
+!**/.env.example
 
-# OS / editors
+# Private keys and certificates
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+*.jks
+
+# ==============================
+# NODE.JS / REACT / VITE
+# ==============================
+node_modules/
+**/node_modules/
+
+dist/
+**/dist/
+build/
+**/build/
+
+.vite/
+**/.vite/
+coverage/
+**/coverage/
+
+.npm/
+*.tsbuildinfo
+
+# Playwright / test output
+playwright-report/
+test-results/
+blob-report/
+**/playwright-report/
+**/test-results/
+
+# ==============================
+# JAVA / MAVEN / SPRING BOOT
+# ==============================
+target/
+**/target/
+
+.mvn/wrapper/maven-wrapper.jar
+
+hs_err_pid*
+replay_pid*
+
+# ==============================
+# PYTHON / AI SERVICE
+# ==============================
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+.venv/
+venv/
+env/
+ENV/
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# ==============================
+# LOCAL DATABASES / DATA
+# ==============================
+*.db
+*.sqlite
+*.sqlite3
+
+# Ignore local data only if it is generated
+# or contains private/runtime information.
+# Uncomment if backend/data should not be committed:
+# backend/data/
+
+# ==============================
+# LOGS / TEMPORARY FILES
+# ==============================
+*.log
+logs/
+**/logs/
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+*.swo
+
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# ==============================
+# OS / EDITORS
+# ==============================
 .DS_Store
+**/.DS_Store
 Thumbs.db
+Desktop.ini
+
 .idea/
 .vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# ==============================
+# ENVIRONMENT / LOCAL CONFIG
+# ==============================
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ==============================
+# GENERATED REPORTS / ARTIFACTS
+# ==============================
+*.class
+*.jar
+*.war
+*.ear
+
+# Keep intentional project assets and source files tracked.

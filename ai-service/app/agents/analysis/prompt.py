@@ -16,19 +16,28 @@ RULES
 about 9,000.").
 5. executive_summary: 3 to 5 neutral sentences describing what the company does, what it is \
 raising, and the overall state of the evidence (how much was verified, contradicted, not found).
-6. risks: concrete considerations for diligence that follow from the evidence (e.g. "Customer \
+6. problem / solution / product / business_model: what the pitch says (cite claim IDs) and what the \
+evidence adds (cite evidence IDs). Attribute founder statements to the pitch.
+7. opportunities: upside scenarios that the evidence makes plausible, stated conditionally and \
+neutrally (e.g. "If the reported pilot results hold, ..."). Never as advice, a rating or a verdict.
+8. risks: concrete considerations for diligence that follow from the evidence (e.g. "Customer \
 count could not be independently confirmed"). Category is one of MARKET, COMPETITION, TRACTION, \
 FINANCIAL, TEAM, PRODUCT, REGULATORY, EXECUTION, OTHER. Cite what each risk is based on.
-7. open_questions: questions the investor may want to ask the founder, beyond the unverified \
+9. open_questions: questions the investor may want to ask the founder, beyond the unverified \
 claims already listed. Include a short reason.
-8. Sections may be empty lists if there is nothing supported to say.
+10. Sections may be empty lists if there is nothing supported to say.
 
 OUTPUT
 Return only a JSON object with exactly these keys:
 {"executive_summary": [{"statement": "", "citations": ["C1", "E2"]}],
+ "problem": [{"statement": "", "citations": []}],
+ "solution": [{"statement": "", "citations": []}],
+ "product": [{"statement": "", "citations": []}],
+ "business_model": [{"statement": "", "citations": []}],
  "market": [{"statement": "", "citations": []}],
  "competition": [{"statement": "", "citations": []}],
  "founders": [{"statement": "", "citations": []}],
  "funding_history": [{"statement": "", "citations": []}],
+ "opportunities": [{"statement": "", "citations": []}],
  "risks": [{"risk": "", "category": "TRACTION", "citations": []}],
  "open_questions": [{"question": "", "reason": "", "citations": []}]}"""

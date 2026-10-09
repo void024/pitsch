@@ -11,9 +11,10 @@ Live schemas: `GET /openapi.json` or `/docs` on a running service.
 
 | Topic | Rule |
 |---|---|
-| Envelope | `{ executionId, traceId, input }` → `{ success, agent, data, error, meta }` |
+| Authentication | Header `X-Internal-Token: <AI_SERVICE_TOKEN>` on every `/agents/*` call (mandatory in production; 401 otherwise). Also send `X-Request-Id` for log correlation. |
+| Envelope | `{ executionId, traceId, input }` → `{ success, agent, data, error, meta }` (`meta` includes tokens, latency, `estimatedCostUsd`, `inputHash`, `fallbackUsed`) |
 | JSON style | camelCase both ways |
-| `executionId` | Deterministic: `<workflowId>:<AGENT>:<stepNumber>`. If you already stored a successful result for an executionId, don't call again (idempotency is the backend's job). |
+| `executionId` | Unique per call (the Pitsch backend uses `<workflowId>:<AGENT>:<step>:<nonce>`). Idempotency is the backend's job: it stores each successful step output and never re-runs a completed step. |
 | `traceId` | Request-scoped, for log correlation |
 | Failures | HTTP 200 + `success=false`. Retry only if `error.retryable`. Suggested: 3 attempts, exponential backoff. |
 | Invalid input | HTTP 422, `error.code = INVALID_INPUT`, `error.details` lists fields (never values) |

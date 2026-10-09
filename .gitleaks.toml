@@ -1,0 +1,13 @@
+# Secret scanning config. Test fixtures use obviously fake values; nothing real may be allowlisted here.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Synthetic test values"
+paths = [
+  '''frontend/package-lock\.json''',
+]
+regexes = [
+  '''correct-horse-42''',
+  '''ci-only-password''',
+]

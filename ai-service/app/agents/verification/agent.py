@@ -1,6 +1,8 @@
 from app.agents.base import execute
 from app.agents.verification.prompt import SYSTEM_PROMPT
 from app.agents.verification.schemas import (
+    ASSESSMENT_FOR_STATUS,
+    ClaimAssessment,
     ClaimToVerify,
     ClaimVerification,
     EvidenceItem,
@@ -62,9 +64,12 @@ class VerificationAgent:
             warnings.append(f"Claims whose quotes were not found in the pitch: {', '.join(unquoted)}.")
 
         summary = {s.value: 0 for s in S}
+        assessments = {a.value: 0 for a in ClaimAssessment}
         for r in results:
             summary[r.status.value] += 1
+            assessments[r.assessment.value] += 1
         return VerificationOutput(pitch_id=inp.pitch_id, results=results, summary=summary,
+                                  assessment_summary=assessments,
                                   needs_human_review=bool(review), review_reasons=review, warnings=warnings)
 
     def _verify_batch(self, batch: list[ClaimToVerify], evidence: dict[str, EvidenceItem],
@@ -145,4 +150,5 @@ class VerificationAgent:
             independently_verified=any(evidence[e].source_type == "EXTERNAL" for e in sup),
             supporting_evidence_ids=sup, contradicting_evidence_ids=con, finding=finding,
             confidence=round(confidence, 3), evidence_outdated=outdated, notes=notes,
+            assessment=ASSESSMENT_FOR_STATUS[status],
         )

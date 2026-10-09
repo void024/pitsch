@@ -18,8 +18,23 @@ public class AgentExecution {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
+    private Long organizationId;
+
     private Long workflowId;
     private String agentName;
+    private String model;
+    private int attempts;
+    private int retryCount;
+    private java.math.BigDecimal estimatedCostUsd;
+
+    /** SHA-256 of the agent input (provenance without storing it twice). */
+    @Column(length = 64)
+    private String inputHash;
+
+    /** PROVIDER | TIMEOUT | VALIDATION | INPUT | INTERNAL | TRANSPORT */
+    @Column(length = 40)
+    private String errorCategory;
 
     /** "<workflowId>:<AGENT>:<step>" — sent to the AI service as executionId. */
     @Column(unique = true)
@@ -45,6 +60,20 @@ public class AgentExecution {
     private Instant completedAt;
 
     public Long getId() { return id; }
+    public Long getOrganizationId() { return organizationId; }
+    public void setOrganizationId(Long v) { this.organizationId = v; }
+    public String getModel() { return model; }
+    public void setModel(String v) { this.model = v; }
+    public int getAttempts() { return attempts; }
+    public void setAttempts(int v) { this.attempts = v; }
+    public int getRetryCount() { return retryCount; }
+    public void setRetryCount(int v) { this.retryCount = v; }
+    public java.math.BigDecimal getEstimatedCostUsd() { return estimatedCostUsd; }
+    public void setEstimatedCostUsd(java.math.BigDecimal v) { this.estimatedCostUsd = v; }
+    public String getInputHash() { return inputHash; }
+    public void setInputHash(String v) { this.inputHash = v; }
+    public String getErrorCategory() { return errorCategory; }
+    public void setErrorCategory(String v) { this.errorCategory = v; }
     public Long getWorkflowId() { return workflowId; }
     public void setWorkflowId(Long workflowId) { this.workflowId = workflowId; }
     public String getAgentName() { return agentName; }

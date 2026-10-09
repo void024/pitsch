@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.core.guardrails import reject_recommendation
 from app.schemas.common import CamelModel
@@ -13,6 +13,28 @@ class VerificationStatus(str, Enum):
     UNVERIFIED = "UNVERIFIED"                  # relevant evidence exists but is inconclusive
     CONTRADICTED = "CONTRADICTED"              # evidence disagrees with the claim
     NOT_FOUND = "NOT_FOUND"                    # no relevant evidence found at all
+
+
+class ClaimAssessment(str, Enum):
+    """Product vocabulary shown to investors (see docs/ARCHITECTURAL_DECISIONS.md, ADR-006).
+
+    The agent's internal status vocabulary is kept for backward compatibility; `assessment` is derived from it
+    deterministically, so both always agree.
+    """
+    SUPPORTED = "SUPPORTED"
+    PARTIALLY_SUPPORTED = "PARTIALLY_SUPPORTED"
+    UNSUPPORTED = "UNSUPPORTED"
+    CONTRADICTED = "CONTRADICTED"
+    NOT_FOUND = "NOT_FOUND"
+
+
+ASSESSMENT_FOR_STATUS = {
+    VerificationStatus.VERIFIED: ClaimAssessment.SUPPORTED,
+    VerificationStatus.PARTIALLY_VERIFIED: ClaimAssessment.PARTIALLY_SUPPORTED,
+    VerificationStatus.UNVERIFIED: ClaimAssessment.UNSUPPORTED,
+    VerificationStatus.CONTRADICTED: ClaimAssessment.CONTRADICTED,
+    VerificationStatus.NOT_FOUND: ClaimAssessment.NOT_FOUND,
+}
 
 
 # ---------- Input: subsets of the Document & Research outputs (extra fields are ignored) ----------
@@ -80,12 +102,20 @@ class ClaimVerification(CamelModel):
     confidence: float
     evidence_outdated: bool               # all supporting evidence is older than the freshness window
     notes: list[str]                      # adjustments code made, and why
+    assessment: ClaimAssessment | None = None   # product vocabulary, derived from status
+
+    @model_validator(mode="after")
+    def _derive_assessment(self):
+        # Always consistent with status (also for results stored before this field existed).
+        self.assessment = ASSESSMENT_FOR_STATUS[self.status]
+        return self
 
 
 class VerificationOutput(CamelModel):
     pitch_id: str | None = None
     results: list[ClaimVerification]
     summary: dict[str, int]               # count per status
+    assessment_summary: dict[str, int] = Field(default_factory=dict)   # count per assessment
     needs_human_review: bool
     review_reasons: list[str]
     warnings: list[str]

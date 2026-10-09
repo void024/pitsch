@@ -1,0 +1,55 @@
+# Publishes images to GHCR only after CI succeeded on main, then (optionally) triggers the platform deploy.
+# Deploy targets are configured with repository secrets, e.g. Render/Fly/Railway deploy hooks:
+#   DEPLOY_HOOK_BACKEND, DEPLOY_HOOK_AI_SERVICE, DEPLOY_HOOK_FRONTEND  (each optional)
+# Protect the "production" environment with required reviewers to keep a human in the loop.
+name: Release
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  images:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [backend, ai-service, frontend]
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ github.event.workflow_run.head_sha }}" }
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with: { registry: ghcr.io, username: "${{ github.actor }}", password: "${{ secrets.GITHUB_TOKEN }}" }
+      - id: meta
+        run: echo "repo=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.service }}
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.repo }}/${{ matrix.service }}:${{ github.event.workflow_run.head_sha }}
+            ${{ steps.meta.outputs.repo }}/${{ matrix.service }}:main
+          cache-from: type=gha,scope=${{ matrix.service }}
+
+  deploy:
+    needs: images
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Trigger deploy hooks
+        env:
+          BACKEND: ${{ secrets.DEPLOY_HOOK_BACKEND }}
+          AI: ${{ secrets.DEPLOY_HOOK_AI_SERVICE }}
+          FRONTEND: ${{ secrets.DEPLOY_HOOK_FRONTEND }}
+        run: |
+          # AI service and backend first (Flyway migrates the schema) before frontend code that depends on them.
+          for hook in "$AI" "$BACKEND" "$FRONTEND"; do
+            if [ -n "$hook" ]; then curl -fsS -X POST "$hook" > /dev/null; fi
+          done

@@ -23,7 +23,15 @@ public class Task {
     private Long id;
 
     @JsonIgnore
+    @Column(nullable = false)
+    private Long organizationId;
+
+    /** Creator (legacy column). */
+    @JsonIgnore
     private Long userId;
+
+    private Long assigneeUserId;
+    private Long createdByUserId;
 
     @Column(nullable = false)
     private String title;
@@ -50,6 +58,12 @@ public class Task {
     }
 
     public Long getId() { return id; }
+    public Long getOrganizationId() { return organizationId; }
+    public void setOrganizationId(Long v) { this.organizationId = v; }
+    public Long getAssigneeUserId() { return assigneeUserId; }
+    public void setAssigneeUserId(Long v) { this.assigneeUserId = v; }
+    public Long getCreatedByUserId() { return createdByUserId; }
+    public void setCreatedByUserId(Long v) { this.createdByUserId = v; }
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
     public String getTitle() { return title; }

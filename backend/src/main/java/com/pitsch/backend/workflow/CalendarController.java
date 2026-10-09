@@ -4,22 +4,23 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.pitsch.backend.auth.AuthInterceptor;
+import com.pitsch.backend.auth.AuthPrincipal;
+import com.pitsch.backend.auth.Permission;
+import com.pitsch.backend.auth.RequiresPermission;
 import com.pitsch.backend.common.ApiException;
 import com.pitsch.backend.common.Json;
+import jakarta.validation.constraints.Size;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/calendar")
 public class CalendarController {
 
-    public record MeetingRequest(Long workflowId, String start, String end, String title) { }
+    public record MeetingRequest(Long workflowId, String start, String end, @Size(max = 200) String title) { }
 
     private final WorkflowRepository workflows;
     private final WorkflowEngine engine;
@@ -34,10 +35,11 @@ public class CalendarController {
     }
 
     /** Slots suggested by the Calendar Agent for this workflow (run PLAN_MEETING first). */
-    @GetMapping("/availability")
-    public Map<String, Object> availability(@RequestAttribute(AuthInterceptor.USER_ID) Long userId,
-                                            @RequestParam Long workflowId) {
-        Workflow wf = workflows.findByIdAndUserId(workflowId, userId).orElseThrow(() -> ApiException.notFound("Workflow"));
+    @GetMapping({"/api/calendar/availability", "/api/v1/calendar/availability"})
+    @RequiresPermission(Permission.PITCH_READ)
+    public Map<String, Object> availability(AuthPrincipal principal, @RequestParam Long workflowId) {
+        Workflow wf = workflows.findByIdAndOrganizationId(workflowId, principal.orgId())
+                .orElseThrow(() -> ApiException.notFound("Workflow"));
         JsonNode calendar = json.read(wf.getCalendarJson());
         if (calendar == null) {
             throw ApiException.notFound("Meeting slots (use the PLAN_MEETING action first)");
@@ -51,13 +53,19 @@ public class CalendarController {
         return out;
     }
 
-    /** Creates the meeting after the investor picked a slot (the explicit approval step). */
-    @PostMapping("/meeting")
-    public WorkflowViews.WorkflowView meeting(@RequestAttribute(AuthInterceptor.USER_ID) Long userId,
-                                              @RequestBody MeetingRequest req) {
+    /** The investor picks a slot: this request is the approval; the event is created by a job. */
+    @PostMapping({"/api/calendar/meeting", "/api/v1/calendar/meetings"})
+    @RequiresPermission(Permission.ACTION_APPROVE)
+    public WorkflowViews.WorkflowView meeting(AuthPrincipal principal, @RequestBody MeetingRequest req) {
         if (req.workflowId() == null) {
             throw ApiException.badRequest("workflowId is required");
         }
-        return views.detail(engine.approveMeeting(userId, req.workflowId(), req.start(), req.end(), req.title()));
+        return views.detail(engine.approveMeeting(principal, req.workflowId(), req.start(), req.end(), req.title()));
+    }
+
+    @PostMapping("/api/v1/workflows/{workflowId}/meeting/cancel")
+    @RequiresPermission(Permission.ACTION_APPROVE)
+    public WorkflowViews.WorkflowView cancel(AuthPrincipal principal, @PathVariable Long workflowId) {
+        return views.detail(engine.cancelMeeting(principal, workflowId));
     }
 }

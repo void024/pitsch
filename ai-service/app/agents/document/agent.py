@@ -12,6 +12,7 @@ from app.agents.document.schemas import (
     Fundraise,
     TractionMetric,
 )
+from app.core.injection import describe, detect_prompt_injection
 from app.core.errors import AgentException, ErrorCode
 from app.core.llm import CallStats, LLMClient, call_structured
 from app.core.text import contains_quote, domain_of, extract_urls, fence, normalize
@@ -155,6 +156,10 @@ class DocumentAgent:
             review.append(f"{unverified} of {len(claims)} claim quotes could not be found in the source text.")
         if not company.name:
             review.append("Company name could not be identified.")
+        injection = detect_prompt_injection(*sources.values())
+        if injection:
+            review.append("The pitch text contains instructions aimed at an AI (" + describe(injection)
+                          + "); they were treated as data. Check the extracted fields against the deck.")
 
         return DocumentOutput(
             pitch_id=inp.pitch_id,

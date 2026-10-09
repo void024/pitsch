@@ -7,7 +7,10 @@ Handled agent failures return HTTP 200 with success=false; Spring Boot checks `s
 
 from functools import lru_cache
 
-from fastapi import APIRouter, Depends
+import hmac
+import logging
+
+from fastapi import APIRouter, Depends, Header, HTTPException
 
 from app.agents.action.agent import ActionAgent
 from app.agents.action.schemas import ActionInput, ActionOutput
@@ -25,12 +28,25 @@ from app.agents.research.agent import ResearchAgent
 from app.agents.research.schemas import ResearchInput, ResearchOutput
 from app.agents.verification.agent import VerificationAgent
 from app.agents.verification.schemas import VerificationInput, VerificationOutput
-from app.config import get_settings
-from app.core.llm import OpenAICompatibleClient
+from app.config import get_service_settings, get_settings
+from app.core.llm import FallbackLLMClient, LLMClient, OpenAICompatibleClient
 from app.core.search import NoSearch, SearchProvider, TavilySearch
 from app.schemas.common import AgentRequest, AgentResult
 
-router = APIRouter(prefix="/agents", tags=["agents"])
+logger = logging.getLogger(__name__)
+
+
+def require_internal_token(x_internal_token: str | None = Header(default=None)) -> None:
+    """Only the Pitsch backend may call the agents. The token is mandatory in production (enforced at
+    startup); in development/test it is checked whenever one is configured."""
+    expected = get_service_settings().ai_service_token
+    if not expected:
+        return
+    if not x_internal_token or not hmac.compare_digest(x_internal_token.encode(), expected.encode()):
+        raise HTTPException(status_code=401, detail="invalid internal token")
+
+
+router = APIRouter(prefix="/agents", tags=["agents"], dependencies=[Depends(require_internal_token)])
 
 
 # ---------------- shared dependencies ----------------
@@ -41,11 +57,19 @@ def get_llm(model: str | None = None) -> OpenAICompatibleClient:
     s = get_settings()
     return OpenAICompatibleClient(api_key=s.llm_api_key, model=model or s.llm_model, base_url=s.llm_base_url,
                                   timeout=s.llm_timeout_seconds, temperature=s.llm_temperature,
-                                  json_mode=s.llm_json_mode, reasoning_effort=s.llm_reasoning_effort)
+                                  json_mode=s.llm_json_mode, reasoning_effort=s.llm_reasoning_effort,
+                                  max_output_tokens=s.llm_max_output_tokens,
+                                  # OpenAI's newer models only accept max_completion_tokens; most other
+                                  # OpenAI-compatible providers (Gemini, Groq, Ollama) use max_tokens.
+                                  max_tokens_param="max_completion_tokens" if s.llm_provider == "openai" else "max_tokens")
 
 
-def llm_for(agent: str) -> OpenAICompatibleClient:
-    return get_llm(get_settings().model_for(agent))
+def llm_for(agent: str) -> LLMClient:
+    s = get_settings()
+    primary = get_llm(s.model_for(agent))
+    if s.llm_fallback_model and s.llm_fallback_model != s.model_for(agent):
+        return FallbackLLMClient(primary, get_llm(s.llm_fallback_model))
+    return primary
 
 
 @lru_cache
@@ -78,7 +102,8 @@ def get_research_agent() -> ResearchAgent:
     s = get_settings()
     return ResearchAgent(llm_for("research"), get_search(), results_per_query=s.search_results_per_query,
                          max_queries=s.research_max_queries, max_rounds=s.research_max_rounds,
-                         staleness_days=s.research_staleness_days, **_retries())
+                         staleness_days=s.research_staleness_days, deadline_seconds=s.research_deadline_seconds,
+                         **_retries())
 
 
 @lru_cache

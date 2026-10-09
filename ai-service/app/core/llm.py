@@ -20,6 +20,7 @@ class LLMResponse:
     model: str
     prompt_tokens: int
     completion_tokens: int
+    fallback_used: bool = False
 
 
 class LLMClient(Protocol):
@@ -55,6 +56,8 @@ class OpenAICompatibleClient:
         json_mode: bool = True,
         reasoning_effort: str | None = None,
         http_client=None,
+        max_output_tokens: int | None = None,
+        max_tokens_param: str = "max_tokens",
     ):
         # max_retries=0: retries are handled by call_structured so they are counted and logged.
         self._client = OpenAI(api_key=api_key, base_url=base_url, timeout=timeout, max_retries=0,
@@ -63,6 +66,8 @@ class OpenAICompatibleClient:
         self._temperature = temperature
         self._json_mode = json_mode
         self._reasoning_effort = reasoning_effort
+        self._max_output_tokens = max_output_tokens if max_output_tokens and max_output_tokens > 0 else None
+        self._max_tokens_param = max_tokens_param
 
     @property
     def model(self) -> str:
@@ -77,6 +82,11 @@ class OpenAICompatibleClient:
             if exc.status_code == 400 and self._json_mode and "response_format" in str(exc).lower():
                 logger.warning("provider rejected JSON mode; retrying without it", extra={"event": "json_mode_off"})
                 self._json_mode = False
+                resp = self._create(system, user)
+            elif exc.status_code == 400 and self._max_output_tokens and self._max_tokens_param in str(exc).lower():
+                logger.warning("provider rejected the output token limit; retrying without it",
+                               extra={"event": "max_tokens_off"})
+                self._max_output_tokens = None
                 resp = self._create(system, user)
             else:
                 raise
@@ -96,6 +106,8 @@ class OpenAICompatibleClient:
             kwargs["response_format"] = {"type": "json_object"}
         if self._reasoning_effort:
             kwargs["reasoning_effort"] = self._reasoning_effort
+        if self._max_output_tokens:
+            kwargs[self._max_tokens_param] = self._max_output_tokens
         try:
             return self._client.chat.completions.create(
                 model=self._model,
@@ -112,6 +124,8 @@ class OpenAICompatibleClient:
         except APIStatusError as exc:
             if exc.status_code == 400 and self._json_mode and "response_format" in str(exc).lower():
                 raise  # handled by complete_json
+            if exc.status_code == 400 and self._max_output_tokens and self._max_tokens_param in str(exc).lower():
+                raise  # handled by complete_json
             messages = {
                 401: "LLM provider rejected the API key (HTTP 401) - check LLM_API_KEY",
                 403: "LLM API key lacks permission for this model/project (HTTP 403)",
@@ -121,7 +135,36 @@ class OpenAICompatibleClient:
                 ErrorCode.LLM_API_ERROR,
                 messages.get(exc.status_code, f"LLM provider returned HTTP {exc.status_code}"),
                 retryable=exc.status_code >= 500,
+                fallback_eligible=exc.status_code >= 500 or exc.status_code == 404,
             ) from exc
+
+
+class FallbackLLMClient:
+    """Primary model with a fallback model for provider failures (outage, 5xx, rate limit, unknown model).
+
+    Validation problems are never "fixed" by switching models silently: only provider-side errors flagged
+    `fallback_eligible` trigger the fallback, and the response is marked so the caller records it.
+    """
+
+    def __init__(self, primary: "LLMClient", fallback: "LLMClient"):
+        self.primary = primary
+        self.fallback = fallback
+
+    @property
+    def model(self) -> str:
+        return getattr(self.primary, "model", "unknown")
+
+    def complete_json(self, system: str, user: str) -> LLMResponse:
+        try:
+            return self.primary.complete_json(system, user)
+        except AgentException as exc:
+            if not exc.fallback_eligible:
+                raise
+            logger.warning("primary model failed; using fallback model",
+                           extra={"event": "llm_fallback", "error_code": exc.code.value})
+            resp = self.fallback.complete_json(system, user)
+            resp.fallback_used = True
+            return resp
 
 
 @dataclass
@@ -130,6 +173,7 @@ class CallStats:
     attempts: int = 0
     prompt_tokens: int = 0
     completion_tokens: int = 0
+    fallback_used: bool = False
 
 
 def _strip_fences(text: str) -> str:
@@ -180,6 +224,7 @@ def call_structured(
             continue
 
         stats.model = resp.model
+        stats.fallback_used = stats.fallback_used or resp.fallback_used
         stats.prompt_tokens += resp.prompt_tokens
         stats.completion_tokens += resp.completion_tokens
 
@@ -194,3 +239,20 @@ def call_structured(
 
     assert last_error is not None
     raise last_error
+
+
+def estimate_cost_usd(model: str | None, prompt_tokens: int, completion_tokens: int,
+                      prices: dict[str, tuple[float, float]]) -> float | None:
+    """Cost from the configured price list (USD per million tokens). Unknown model -> None, never a guess.
+
+    Provider-reported names may carry a prefix or version suffix ("models/gemini-x", "gpt-4o-2024-08-06"),
+    so the longest configured name contained in the reported one is used.
+    """
+    if not model or not prices:
+        return None
+    name = model.lower()
+    match = max((k for k in prices if k.lower() in name), key=len, default=None)
+    if match is None:
+        return None
+    per_in, per_out = prices[match]
+    return round((prompt_tokens * per_in + completion_tokens * per_out) / 1_000_000, 6)

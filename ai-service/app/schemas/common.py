@@ -43,6 +43,9 @@ class AgentMeta(CamelModel):
     prompt_tokens: int = 0
     completion_tokens: int = 0
     latency_ms: int = 0
+    estimated_cost_usd: float | None = None   # from LLM_PRICES; None when the model's price is not configured
+    input_hash: str | None = None             # SHA-256 of the input, for audit and cache/idempotency checks
+    fallback_used: bool = False               # the fallback model answered because the primary failed
 
 
 class AgentResult(CamelModel, Generic[DataT]):

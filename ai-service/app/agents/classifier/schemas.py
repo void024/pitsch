@@ -135,3 +135,6 @@ class ClassifierOutput(CamelModel):
     warnings: list[str]
     reason: str
     match_signals: list[MatchSignal]
+    # Deterministic heuristics (app.core.injection), independent of the model's own judgement.
+    prompt_injection_suspected: bool = False
+    prompt_injection_signals: list[str] = Field(default_factory=list)

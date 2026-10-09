@@ -2,7 +2,6 @@ package com.pitsch.backend.email;
 
 import java.time.Instant;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -11,18 +10,33 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
+/** An incoming email (untrusted content). One workflow is started per email. */
 @Entity
 @Table(name = "emails")
 public class Email {
+
+    public enum Source { MANUAL, GMAIL }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @JsonIgnore
+    @Column(nullable = false)
+    private Long organizationId;
+
+    /** The member who imported it, or whose Gmail it arrived in (workflow owner). */
     private Long userId;
 
-    /** Gmail message id when ingested from Gmail; null for emails submitted through the API/UI. */
+    @Column(nullable = false, length = 20)
+    private String source = Source.MANUAL.name();
+
+    /** "gmail:&lt;id&gt;" or "msgid:&lt;Message-ID&gt;"; unique per workspace — the same email is never processed twice. */
+    @Column(length = 300)
+    private String dedupeKey;
+
+    /** Gmail connection it was ingested through (labels are applied to that mailbox). */
+    private Long connectionId;
+
     private String gmailId;
     private String threadId;
     private String messageId;
@@ -48,7 +62,7 @@ public class Email {
     private Long previousPitchId;
     private String category;
 
-    /** Gmail-style labels applied by the Action Agent (simulated until Gmail is connected). */
+    /** Pitsch labels (also mirrored to Gmail when the email came from Gmail and policy allows). */
     @Column(length = 1000)
     private String labels;
 
@@ -63,8 +77,16 @@ public class Email {
     }
 
     public Long getId() { return id; }
+    public Long getOrganizationId() { return organizationId; }
+    public void setOrganizationId(Long v) { this.organizationId = v; }
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
+    public String getSource() { return source; }
+    public void setSource(String v) { this.source = v; }
+    public String getDedupeKey() { return dedupeKey; }
+    public void setDedupeKey(String v) { this.dedupeKey = v; }
+    public Long getConnectionId() { return connectionId; }
+    public void setConnectionId(Long v) { this.connectionId = v; }
     public String getGmailId() { return gmailId; }
     public void setGmailId(String gmailId) { this.gmailId = gmailId; }
     public String getThreadId() { return threadId; }

@@ -10,6 +10,7 @@ from app.agents.classifier.schemas import (
     NotPitchType,
     RecommendedAction,
 )
+from app.core.injection import describe, detect_prompt_injection
 from app.core.llm import CallStats, LLMClient, call_structured
 from app.schemas.common import AgentRequest, AgentResult
 
@@ -101,7 +102,14 @@ class EmailClassifierAgent:
             review.append(f"Multiple companies pitched in one email: {', '.join(raw.detected_companies)}.")
             category, overridden = EmailCategory.AMBIGUOUS, True
 
-        # 4. Strong deterministic signal disagrees with the model.
+        # 4. Prompt-injection heuristics: the email is routed to a human, never acted on automatically.
+        injection = detect_prompt_injection(email.subject, email.body, email.sender.name,
+                                            *(a.filename for a in email.attachments))
+        if injection:
+            review.append("Possible prompt-injection attempt in the email (" + describe(injection)
+                          + "). Its content was treated as data only; check it before acting.")
+
+        # 5. Strong deterministic signal disagrees with the model.
         if signals and "SAME_THREAD" in signals[0].signals and category == EmailCategory.NEW_PITCH:
             review.append("Email is in the same thread as an existing pitch but was classified as a new pitch.")
 
@@ -147,4 +155,6 @@ class EmailClassifierAgent:
             warnings=warnings,
             reason=raw.reason,
             match_signals=signals,
+            prompt_injection_suspected=bool(injection),
+            prompt_injection_signals=injection,
         )

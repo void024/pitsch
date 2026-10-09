@@ -8,7 +8,9 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 @Entity
 @Table(name = "email_drafts")
@@ -17,6 +19,9 @@ public class EmailDraft {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false)
+    private Long organizationId;
 
     private Long userId;
     private Long workflowId;
@@ -32,8 +37,23 @@ public class EmailDraft {
 
     private String purpose;
 
-    /** DRAFT | SENT | CANCELLED */
+    /** DRAFT | SENDING | SENT | FAILED | CANCELLED | SIMULATED (legacy, never sent) | DEMO_SENT (demo mode) */
     private String status = "DRAFT";
+
+    @Column(length = 100)
+    private String idempotencyKey;
+
+    private Long approvalId;
+    private String sentExternalId;
+    private String sentThreadId;
+
+    @Column(length = 1000)
+    private String failureReason;
+
+    private Instant updatedAt;
+
+    @Version
+    private long version;
 
     private boolean needsHumanReview;
     @Column(columnDefinition = "TEXT") private String reviewReasonsJson;
@@ -44,9 +64,29 @@ public class EmailDraft {
     @PrePersist
     void onCreate() {
         createdAt = Instant.now();
+        updatedAt = createdAt;
+    }
+
+    @PreUpdate
+    void onUpdate() {
+        updatedAt = Instant.now();
     }
 
     public Long getId() { return id; }
+    public Long getOrganizationId() { return organizationId; }
+    public void setOrganizationId(Long v) { this.organizationId = v; }
+    public String getIdempotencyKey() { return idempotencyKey; }
+    public void setIdempotencyKey(String v) { this.idempotencyKey = v; }
+    public Long getApprovalId() { return approvalId; }
+    public void setApprovalId(Long v) { this.approvalId = v; }
+    public String getSentExternalId() { return sentExternalId; }
+    public void setSentExternalId(String v) { this.sentExternalId = v; }
+    public String getSentThreadId() { return sentThreadId; }
+    public void setSentThreadId(String v) { this.sentThreadId = v; }
+    public String getFailureReason() { return failureReason; }
+    public void setFailureReason(String v) { this.failureReason = v; }
+    public Instant getUpdatedAt() { return updatedAt; }
+    public long getVersion() { return version; }
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
     public Long getWorkflowId() { return workflowId; }

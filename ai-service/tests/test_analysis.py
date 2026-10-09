@@ -74,7 +74,7 @@ def test_only_cited_sources_are_listed():
 
 def test_markdown_render_contains_key_sections():
     md = run([analysis_llm()])[0].data.markdown
-    for part in ("# Research Brief: Krishi AI", "## Claims from the pitch", "🟡 Partially verified",
+    for part in ("# Research Brief: Krishi AI", "## Claims from the pitch", "🟡 Partially supported",
                  "## Open questions for the investor", "## Sources", "no investment recommendation"):
         assert part in md, part
 

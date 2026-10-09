@@ -1,11 +1,13 @@
 package com.pitsch.backend.ai;
 
+import java.time.Duration;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.pitsch.backend.common.Json;
+import com.pitsch.backend.config.PitschProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
@@ -15,35 +17,36 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestClientResponseException;
 
 /**
- * HTTP client for the FastAPI AI service. Retries only what the AI service marks as retryable
- * (or when the service can't be reached), with exponential backoff.
+ * HTTP client for the FastAPI AI service. Authenticates with the shared internal service token, retries only what
+ * the AI service marks retryable (or when it can't be reached) with exponential backoff.
  */
 @Component
 public class HttpAiClient implements AiClient {
 
+    public static final String TOKEN_HEADER = "X-Internal-Token";
     private static final Logger log = LoggerFactory.getLogger(HttpAiClient.class);
 
     private final RestClient rest;
     private final Json json;
     private final int maxAttempts;
     private final long backoffMillis;
-    private final String baseUrl;
 
-    public HttpAiClient(Json json,
-                        @Value("${pitsch.ai.base-url}") String baseUrl,
-                        @Value("${pitsch.ai.connect-timeout-seconds:5}") int connectTimeoutSeconds,
-                        @Value("${pitsch.ai.read-timeout-seconds:240}") int readTimeoutSeconds,
-                        @Value("${pitsch.ai.max-attempts:3}") int maxAttempts,
-                        @Value("${pitsch.ai.retry-backoff-millis:2000}") long backoffMillis) {
+    public HttpAiClient(Json json, PitschProperties props) {
+        PitschProperties.Ai cfg = props.getAi();
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(connectTimeoutSeconds * 1000);
-        factory.setReadTimeout(readTimeoutSeconds * 1000);
-        this.rest = RestClient.builder().baseUrl(baseUrl).requestFactory(factory).build();
+        factory.setConnectTimeout(Duration.ofSeconds(cfg.getConnectTimeoutSeconds()));
+        factory.setReadTimeout(Duration.ofSeconds(cfg.getReadTimeoutSeconds()));
+        RestClient.Builder builder = RestClient.builder().baseUrl(cfg.getBaseUrl()).requestFactory(factory);
+        if (cfg.getInternalToken() != null && !cfg.getInternalToken().isBlank()) {
+            builder.defaultHeader(TOKEN_HEADER, cfg.getInternalToken());
+        }
+        this.rest = builder.build();
+        this.maxAttempts = Math.max(1, cfg.getMaxAttempts());
+        this.backoffMillis = cfg.getRetryBackoffMillis();
         this.json = json;
-        this.maxAttempts = Math.max(1, maxAttempts);
-        this.backoffMillis = backoffMillis;
-        this.baseUrl = baseUrl;
     }
+
+
 
     @Override
     public AgentResult call(Agent agent, String executionId, String traceId, JsonNode input) {
@@ -66,8 +69,10 @@ public class HttpAiClient implements AiClient {
 
     private AgentResult once(Agent agent, ObjectNode request) {
         try {
+            String requestId = com.pitsch.backend.common.RequestContext.requestId();
             JsonNode body = rest.post()
                     .uri("/agents/" + agent.path())
+                    .header("X-Request-Id", requestId == null ? java.util.UUID.randomUUID().toString() : requestId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(request)
                     .retrieve()
@@ -75,15 +80,17 @@ public class HttpAiClient implements AiClient {
             return parse(agent, body);
         } catch (RestClientResponseException e) {
             // 422 = the backend sent input the agent rejected; the body is still the common envelope.
-            JsonNode body = json.read(e.getResponseBodyAsString());
+            JsonNode body = json.readSafely(e.getResponseBodyAsString());
             if (body != null && body.has("error")) {
                 return parse(agent, body);
+            }
+            if (e.getStatusCode().value() == 401) {
+                log.error("AI service rejected the internal token (check AI_SERVICE_TOKEN on both services)");
             }
             return AgentResult.failure(agent.name(), "AI_SERVICE_HTTP_" + e.getStatusCode().value(),
                     "AI service returned HTTP " + e.getStatusCode().value(), e.getStatusCode().is5xxServerError());
         } catch (ResourceAccessException e) {
-            return AgentResult.failure(agent.name(), "AI_SERVICE_UNAVAILABLE",
-                    "Could not reach the AI service at " + baseUrl + " (is it running?)", true);
+            return AgentResult.failure(agent.name(), "AI_SERVICE_UNAVAILABLE", "The AI service could not be reached", true);
         } catch (RestClientException | IllegalStateException e) {
             log.error("Unexpected AI client error for {}", agent, e);
             return AgentResult.failure(agent.name(), "AI_CLIENT_ERROR", "Unexpected error calling the AI service", false);

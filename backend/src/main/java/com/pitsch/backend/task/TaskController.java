@@ -6,8 +6,14 @@ import java.util.List;
 import java.util.Set;
 
 import com.pitsch.backend.activity.ActivityService;
-import com.pitsch.backend.auth.AuthInterceptor;
+import com.pitsch.backend.auth.AuthPrincipal;
+import com.pitsch.backend.auth.Permission;
+import com.pitsch.backend.auth.RequiresPermission;
 import com.pitsch.backend.common.ApiException;
+import com.pitsch.backend.org.MembershipRepository;
+import com.pitsch.backend.pitch.PitchRepository;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,17 +21,17 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+/** Diligence follow-up tasks, optionally linked to a pitch and assigned to a member. */
 @RestController
-@RequestMapping("/api/tasks")
 public class TaskController {
 
-    public record TaskInput(String title, String description, String status, String priority, String dueDate) { }
+    public record TaskInput(@Size(max = 255) String title, @Size(max = 10000) String description, String status,
+                            String priority, String dueDate, Long pitchId, Long assigneeUserId) { }
 
     public record StatusInput(String status) { }
 
@@ -33,60 +39,74 @@ public class TaskController {
     private static final Set<String> PRIORITIES = Set.of("LOW", "MEDIUM", "HIGH");
 
     private final TaskRepository repo;
+    private final PitchRepository pitches;
+    private final MembershipRepository memberships;
     private final ActivityService activity;
 
-    public TaskController(TaskRepository repo, ActivityService activity) {
+    public TaskController(TaskRepository repo, PitchRepository pitches, MembershipRepository memberships,
+                          ActivityService activity) {
         this.repo = repo;
+        this.pitches = pitches;
+        this.memberships = memberships;
         this.activity = activity;
     }
 
-    @GetMapping
-    public List<Task> list(@RequestAttribute(AuthInterceptor.USER_ID) Long userId) {
-        return repo.findByUserIdOrderByCreatedAtDesc(userId);
+    @GetMapping({"/api/tasks", "/api/v1/tasks"})
+    @RequiresPermission(Permission.TASK_READ)
+    public List<Task> list(AuthPrincipal principal, @RequestParam(required = false) Long pitchId) {
+        return pitchId == null ? repo.findByOrganizationIdOrderByCreatedAtDesc(principal.orgId())
+                : repo.findByOrganizationIdAndPitchIdOrderByCreatedAtDesc(principal.orgId(), pitchId);
     }
 
-    @PostMapping
+    @PostMapping({"/api/tasks", "/api/v1/tasks"})
     @ResponseStatus(HttpStatus.CREATED)
-    public Task create(@RequestAttribute(AuthInterceptor.USER_ID) Long userId, @RequestBody TaskInput in) {
+    @RequiresPermission(Permission.TASK_WRITE)
+    public Task create(AuthPrincipal principal, @Valid @RequestBody TaskInput in) {
         Task t = new Task();
-        t.setUserId(userId);
-        apply(t, in);
+        t.setOrganizationId(principal.orgId());
+        t.setUserId(principal.userId());
+        t.setCreatedByUserId(principal.userId());
+        apply(principal, t, in);
+        if (in.assigneeUserId() == null) {
+            t.setAssigneeUserId(principal.userId());   // new tasks default to their creator
+        }
         Task saved = repo.save(t);
-        activity.log(userId, "TASK", "Task created: " + saved.getTitle());
+        activity.log(principal.orgId(), principal.userId(), "TASK", "Task created: " + saved.getTitle());
         return saved;
     }
 
-    @PutMapping("/{id}")
-    public Task update(@RequestAttribute(AuthInterceptor.USER_ID) Long userId, @PathVariable Long id,
-                       @RequestBody TaskInput in) {
-        Task t = find(userId, id);
-        apply(t, in);
+    @PutMapping({"/api/tasks/{id}", "/api/v1/tasks/{id}"})
+    @RequiresPermission(Permission.TASK_WRITE)
+    public Task update(AuthPrincipal principal, @PathVariable Long id, @Valid @RequestBody TaskInput in) {
+        Task t = find(principal, id);
+        apply(principal, t, in);
         return repo.save(t);
     }
 
-    @PatchMapping("/{id}/status")
-    public Task setStatus(@RequestAttribute(AuthInterceptor.USER_ID) Long userId, @PathVariable Long id,
-                          @RequestBody StatusInput in) {
-        Task t = find(userId, id);
+    @PatchMapping({"/api/tasks/{id}/status", "/api/v1/tasks/{id}/status"})
+    @RequiresPermission(Permission.TASK_WRITE)
+    public Task setStatus(AuthPrincipal principal, @PathVariable Long id, @RequestBody StatusInput in) {
+        Task t = find(principal, id);
         t.setStatus(checked(in.status(), STATUSES, "status"));
         Task saved = repo.save(t);
         if ("DONE".equals(saved.getStatus())) {
-            activity.log(userId, "TASK", "Task completed: " + saved.getTitle());
+            activity.log(principal.orgId(), principal.userId(), "TASK", "Task completed: " + saved.getTitle());
         }
         return saved;
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping({"/api/tasks/{id}", "/api/v1/tasks/{id}"})
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@RequestAttribute(AuthInterceptor.USER_ID) Long userId, @PathVariable Long id) {
-        repo.delete(find(userId, id));
+    @RequiresPermission(Permission.TASK_WRITE)
+    public void delete(AuthPrincipal principal, @PathVariable Long id) {
+        repo.delete(find(principal, id));
     }
 
-    private Task find(Long userId, Long id) {
-        return repo.findByIdAndUserId(id, userId).orElseThrow(() -> ApiException.notFound("Task"));
+    private Task find(AuthPrincipal principal, Long id) {
+        return repo.findByIdAndOrganizationId(id, principal.orgId()).orElseThrow(() -> ApiException.notFound("Task"));
     }
 
-    private static void apply(Task t, TaskInput in) {
+    private void apply(AuthPrincipal principal, Task t, TaskInput in) {
         if (in.title() == null || in.title().isBlank()) {
             throw ApiException.badRequest("Title is required.");
         }
@@ -107,6 +127,16 @@ public class TaskController {
                 throw ApiException.badRequest("dueDate must be YYYY-MM-DD");
             }
         }
+        if (in.pitchId() != null) {
+            pitches.findByIdAndOrganizationId(in.pitchId(), principal.orgId())
+                    .orElseThrow(() -> ApiException.notFound("Pitch"));
+        }
+        t.setPitchId(in.pitchId());
+        if (in.assigneeUserId() != null) {
+            memberships.findByOrganizationIdAndUserId(principal.orgId(), in.assigneeUserId())
+                    .orElseThrow(() -> ApiException.badRequest("The assignee is not a member of this workspace."));
+        }
+        t.setAssigneeUserId(in.assigneeUserId());   // PUT semantics: null unassigns
     }
 
     private static String checked(String value, Set<String> allowed, String field) {

@@ -2,9 +2,9 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.agents.document.schemas import DocumentOutput, Provenance, TractionMetric
+from app.agents.document.schemas import DocumentOutput, Fundraise, Provenance, TractionMetric
 from app.agents.research.schemas import Competitor, ResearchOutput
-from app.agents.verification.schemas import VerificationOutput
+from app.agents.verification.schemas import ASSESSMENT_FOR_STATUS, VerificationOutput, VerificationStatus
 from app.core.guardrails import reject_recommendation
 from app.schemas.common import CamelModel
 
@@ -60,6 +60,11 @@ class _Question(BaseModel):
 class AnalysisLLMOutput(BaseModel):
     model_config = ConfigDict(extra="ignore")
     executive_summary: list[_Item] = Field(default_factory=list)
+    problem: list[_Item] = Field(default_factory=list)
+    solution: list[_Item] = Field(default_factory=list)
+    product: list[_Item] = Field(default_factory=list)
+    business_model: list[_Item] = Field(default_factory=list)
+    opportunities: list[_Item] = Field(default_factory=list)
     market: list[_Item] = Field(default_factory=list)
     competition: list[_Item] = Field(default_factory=list)
     founders: list[_Item] = Field(default_factory=list)
@@ -91,11 +96,20 @@ class EvidenceLink(CamelModel):
     source_type: str
 
 
+def assessment_for(status: str) -> str:
+    """Product vocabulary (SUPPORTED, PARTIALLY_SUPPORTED, UNSUPPORTED, CONTRADICTED, NOT_FOUND) or NOT_CHECKED."""
+    try:
+        return ASSESSMENT_FOR_STATUS[VerificationStatus(status)].value
+    except ValueError:
+        return NOT_CHECKED
+
+
 class ClaimRow(CamelModel):
     claim_id: str
     claim: str
     category: str | None = None
     status: str                       # VerificationStatus value or NOT_CHECKED
+    assessment: str = NOT_CHECKED     # SUPPORTED | PARTIALLY_SUPPORTED | UNSUPPORTED | CONTRADICTED | NOT_FOUND | NOT_CHECKED
     independently_verified: bool
     finding: str | None = None
     evidence_outdated: bool = False
@@ -127,6 +141,15 @@ class SourceRef(CamelModel):
     possibly_outdated: bool = False
 
 
+class AIConfidence(CamelModel):
+    """How well the brief is supported by evidence — NOT a view on the company or the investment."""
+    level: str                        # LOW | MEDIUM | HIGH
+    score: float                      # 0..1, deterministic from the evidence counts below
+    reasons: list[str]
+    note: str = ("Confidence describes the completeness and evidential support of this brief. It is not an "
+                 "assessment of the company and not an investment recommendation.")
+
+
 class Brief(CamelModel):
     company_overview: list[OverviewRow]
     executive_summary: list[Finding]
@@ -140,6 +163,15 @@ class Brief(CamelModel):
     risks: list[Risk]
     open_questions: list[OpenQuestion]
     sources: list[SourceRef]
+    problem: list[Finding] = Field(default_factory=list)
+    solution: list[Finding] = Field(default_factory=list)
+    product: list[Finding] = Field(default_factory=list)
+    business_model: list[Finding] = Field(default_factory=list)
+    opportunities: list[Finding] = Field(default_factory=list)
+    fundraising: Fundraise | None = None          # as stated in the pitch (founder-provided)
+    missing_information: list[str] = Field(default_factory=list)
+    ai_confidence: AIConfidence | None = None
+    generated_at: datetime | None = None          # "last updated"
 
 
 class AnalysisOutput(CamelModel):
@@ -148,6 +180,7 @@ class AnalysisOutput(CamelModel):
     brief: Brief
     markdown: str                     # ready-to-display rendering of the brief
     claim_status_summary: dict[str, int]
+    claim_assessment_summary: dict[str, int] = Field(default_factory=dict)
     disclaimer: str
     needs_human_review: bool
     review_reasons: list[str]

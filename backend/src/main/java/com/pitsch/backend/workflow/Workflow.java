@@ -10,6 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 /**
  * One workflow per incoming email. Agent outputs are stored verbatim as JSON so later agents receive
@@ -23,6 +24,10 @@ public class Workflow {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
+    private Long organizationId;
+
+    /** Owner: the member who imported the email or whose mailbox received it. */
     private Long userId;
     private Long emailId;
     private Long pitchId;
@@ -65,6 +70,11 @@ public class Workflow {
     private Instant createdAt;
     private Instant updatedAt;
     private Instant completedAt;
+    private Instant lastTransitionAt;
+
+    /** Optimistic locking: concurrent jobs/requests cannot silently overwrite each other's state changes. */
+    @Version
+    private long version;
 
     @PrePersist
     void onCreate() {
@@ -78,6 +88,11 @@ public class Workflow {
     }
 
     public Long getId() { return id; }
+    public Long getOrganizationId() { return organizationId; }
+    public void setOrganizationId(Long v) { this.organizationId = v; }
+    public Instant getLastTransitionAt() { return lastTransitionAt; }
+    public void setLastTransitionAt(Instant v) { this.lastTransitionAt = v; }
+    public long getVersion() { return version; }
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
     public Long getEmailId() { return emailId; }

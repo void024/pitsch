@@ -44,6 +44,15 @@ public class Json {
         }
     }
 
+    /** Like {@link #read} but returns null instead of failing on malformed input (for third-party responses). */
+    public JsonNode readSafely(String text) {
+        try {
+            return read(text);
+        } catch (IllegalStateException e) {
+            return null;
+        }
+    }
+
     public String write(Object value) {
         if (value == null) {
             return null;

@@ -1,75 +1,38 @@
-# React + TypeScript + Vite
+# Pitsch frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React 19 + TypeScript + Vite single-page app. It talks only to the Pitsch backend (`/api/v1`).
 
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm ci
+npm run dev        # http://localhost:5173, proxies /api to VITE_DEV_API_TARGET (default http://localhost:8080)
+npm run lint       # ESLint (incl. React Compiler rules)
+npm run build      # type-check + production build to dist/
+npm test           # Vitest unit/component tests
+npm run e2e        # Playwright journeys against the production build with a mocked API
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+E2E needs Chromium: `npx playwright install chromium` (or set `PW_CHROMIUM_PATH` to an installed one).
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Structure
 
 ```
+src/
+  lib/api/client.ts      fetch client: in-memory access token, single-flight refresh, CSRF header, ApiError(requestId)
+  lib/api/endpoints.ts   every backend call, typed
+  lib/api/types.ts       API contract types
+  lib/auth/AuthContext   session state, login/signup/logout, permissions (can())
+  lib/hooks.ts           useAsync (abortable, no spinner on background reloads), useInterval, useDebounced
+  lib/safeUrl.ts         safeHttpUrl (untrusted links), safeAppPath (internal redirects only)
+  components/            ui primitives, badges, BriefView, ImportEmailModal, layout/AppShell (nav, RequireAuth)
+  pages/                 Dashboard, Inbox, Pitches, PitchDetail, Pipeline, Workflows, WorkflowDetail, Approvals,
+                         Calendar, Tasks, Notifications, Integrations, Onboarding, auth/*, settings/*
+  styles/app.css         design tokens and components
+  test/                  Vitest tests
+e2e/                     Playwright specs + mock API
+```
+
+Build-time settings (`.env.example`): `VITE_API_BASE_URL` (default `/api`), `VITE_GOOGLE_LOGIN`, `VITE_DEMO_MODE`.
+They are public — never put secrets in `VITE_*` variables. The production image (`Dockerfile`) serves the build with
+nginx, adds security headers (CSP, frame, nosniff) and proxies `/api` to `BACKEND_URL`.
+
+Permissions are enforced by the backend; the UI only hides what the user's role cannot do.
