@@ -29,7 +29,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run e2e
         env: { CI: "true" }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: failure()
         with: { name: playwright-report, path: frontend/playwright-report, retention-days: 7 }
 
@@ -75,7 +75,7 @@ jobs:
       - run: python -m pytest -q
       - name: Offline evals (fail on threshold regressions)
         run: python -m evals.run_evals --suite offline --report eval-report.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with: { name: eval-report, path: ai-service/eval-report.json, retention-days: 30 }
 
   security:
