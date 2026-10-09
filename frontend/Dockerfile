@@ -12,7 +12,7 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL VITE_GOOGLE_LOGIN=$VITE_GOOGLE_LOGIN VI
 RUN npm run build
 
 # ---- Serve with unprivileged nginx; /api is proxied to the backend (same-site cookies, no CORS) ----
-FROM nginxinc/nginx-unprivileged:1.27-alpine
+FROM nginxinc/nginx-unprivileged:1.31-alpine
 COPY docker/nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=build /app/dist /usr/share/nginx/html
 ENV BACKEND_URL=http://backend:8080 \
