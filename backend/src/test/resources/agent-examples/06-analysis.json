@@ -1,0 +1,588 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/agents/analysis",
+    "body": {
+      "executionId": "102:analysis:6",
+      "traceId": "trace-102",
+      "input": {
+        "pitchId": "7",
+        "document": {
+          "pitchId": "7",
+          "company": {
+            "name": "Krishi AI",
+            "website": "www.krishiai.in",
+            "sector": "AgriTech",
+            "subSector": null,
+            "stage": "Seed",
+            "location": null,
+            "foundedYear": null,
+            "oneLiner": "AI crop advisory for Indian farmers"
+          },
+          "founders": [
+            {
+              "name": "Ananya Rao",
+              "role": "CEO",
+              "background": null,
+              "linkedinUrl": null
+            }
+          ],
+          "fundraise": {
+            "amountRequested": "$2M",
+            "currency": null,
+            "instrument": "SAFE",
+            "valuation": null,
+            "useOfFunds": []
+          },
+          "productSummary": null,
+          "businessModel": null,
+          "targetCustomers": null,
+          "tractionMetrics": [
+            {
+              "metric": "Farmers onboarded",
+              "value": "12,000",
+              "period": null,
+              "sourceRef": "d1:p2"
+            }
+          ],
+          "claims": [
+            {
+              "claimId": "C1",
+              "text": "The pitch claims 12,000 farmers onboarded.",
+              "category": "TRACTION",
+              "quote": "12,000 farmers onboarded across 3 states",
+              "sourceRef": "d1:p2",
+              "quoteVerified": true,
+              "provenance": "PITCH"
+            },
+            {
+              "claimId": "C2",
+              "text": "The pitch claims market leadership.",
+              "category": "COMPETITION",
+              "quote": "We are the market leader in AI agri-advisory",
+              "sourceRef": "d1:p3",
+              "quoteVerified": true,
+              "provenance": "PITCH"
+            },
+            {
+              "claimId": "C3",
+              "text": "The pitch claims Rs 1.2 Cr ARR.",
+              "category": "FINANCIAL",
+              "quote": "Revenue: Rs 1.2 Cr ARR, growing 40% QoQ",
+              "sourceRef": "d1:p2",
+              "quoteVerified": true,
+              "provenance": "PITCH"
+            }
+          ],
+          "links": [],
+          "missingInformation": [
+            "Burn rate / runway not disclosed"
+          ],
+          "documents": [
+            {
+              "documentId": "att_1",
+              "ref": "d1",
+              "filename": "deck.pdf",
+              "readable": true,
+              "pageCount": 3,
+              "charsExtracted": 227,
+              "warning": null
+            }
+          ],
+          "truncated": false,
+          "needsHumanReview": false,
+          "reviewReasons": [],
+          "warnings": []
+        },
+        "research": {
+          "pitchId": "7",
+          "companyName": "Krishi AI",
+          "searchProvider": "fake",
+          "sources": [
+            {
+              "sourceId": "S1",
+              "url": "https://techcrunch.com/2026/05/krishi-ai-seed",
+              "title": "Krishi AI raises seed",
+              "domain": "techcrunch.com",
+              "sourceType": "EXTERNAL",
+              "publishedAt": "2026-05-10T00:00:00Z",
+              "retrievedAt": "2026-10-03T00:00:00Z",
+              "possiblyOutdated": false,
+              "query": "\"Krishi AI\" funding raised investors"
+            },
+            {
+              "sourceId": "S2",
+              "url": "https://www.krishiai.in/about",
+              "title": "About Krishi AI",
+              "domain": "krishiai.in",
+              "sourceType": "COMPANY",
+              "publishedAt": null,
+              "retrievedAt": "2026-10-03T00:00:00Z",
+              "possiblyOutdated": false,
+              "query": "\"Krishi AI\" funding raised investors"
+            },
+            {
+              "sourceId": "S3",
+              "url": "https://yourstory.com/2023/krishi-ai",
+              "title": "Agritech startups to watch",
+              "domain": "yourstory.com",
+              "sourceType": "EXTERNAL",
+              "publishedAt": "2023-01-05T00:00:00Z",
+              "retrievedAt": "2026-10-03T00:00:00Z",
+              "possiblyOutdated": true,
+              "query": "\"Krishi AI\" funding raised investors"
+            }
+          ],
+          "evidence": [
+            {
+              "evidenceId": "E1",
+              "sourceId": "S1",
+              "topic": "FUNDING",
+              "statement": "TechCrunch reports a $1.5M seed round.",
+              "excerpt": "has raised $1.5M in a seed round led by Omnivore",
+              "claimIds": [],
+              "sourceType": "EXTERNAL",
+              "provenance": "EXTERNAL",
+              "sourceUrl": "https://techcrunch.com/2026/05/krishi-ai-seed",
+              "sourceTitle": "Krishi AI raises seed",
+              "publishedAt": "2026-05-10T00:00:00Z",
+              "retrievedAt": "2026-10-03T00:00:00Z",
+              "possiblyOutdated": false
+            },
+            {
+              "evidenceId": "E2",
+              "sourceId": "S1",
+              "topic": "TRACTION",
+              "statement": "TechCrunch reports about 9,000 farmers.",
+              "excerpt": "it serves about 9,000 farmers in Karnataka and Maharashtra",
+              "claimIds": [
+                "C1"
+              ],
+              "sourceType": "EXTERNAL",
+              "provenance": "EXTERNAL",
+              "sourceUrl": "https://techcrunch.com/2026/05/krishi-ai-seed",
+              "sourceTitle": "Krishi AI raises seed",
+              "publishedAt": "2026-05-10T00:00:00Z",
+              "retrievedAt": "2026-10-03T00:00:00Z",
+              "possiblyOutdated": false
+            },
+            {
+              "evidenceId": "E3",
+              "sourceId": "S2",
+              "topic": "TRACTION",
+              "statement": "Company site says 12,000+ farmers.",
+              "excerpt": "helps over 12,000 farmers make better crop decisions",
+              "claimIds": [
+                "C1"
+              ],
+              "sourceType": "COMPANY",
+              "provenance": "COMPANY",
+              "sourceUrl": "https://www.krishiai.in/about",
+              "sourceTitle": "About Krishi AI",
+              "publishedAt": null,
+              "retrievedAt": "2026-10-03T00:00:00Z",
+              "possiblyOutdated": false
+            }
+          ],
+          "competitors": [
+            {
+              "name": "FarmWise",
+              "description": "AI crop advisory",
+              "sourceIds": [
+                "S3"
+              ]
+            }
+          ],
+          "queriesRun": [
+            {
+              "query": "\"Krishi AI\" AgriTech",
+              "topic": "COMPANY",
+              "round": 1,
+              "resultCount": 0,
+              "error": null
+            },
+            {
+              "query": "\"Krishi AI\" funding raised investors",
+              "topic": "FUNDING",
+              "round": 1,
+              "resultCount": 4,
+              "error": null
+            },
+            {
+              "query": "\"Krishi AI\" competitors alternatives",
+              "topic": "COMPETITORS",
+              "round": 1,
+              "resultCount": 0,
+              "error": null
+            },
+            {
+              "query": "\"Ananya Rao\" \"Krishi AI\"",
+              "topic": "FOUNDERS",
+              "round": 1,
+              "resultCount": 0,
+              "error": null
+            },
+            {
+              "query": "\"Krishi AI\" news",
+              "topic": "NEWS",
+              "round": 1,
+              "resultCount": 0,
+              "error": null
+            },
+            {
+              "query": "Krishi AI farmers",
+              "topic": "TRACTION",
+              "round": 1,
+              "resultCount": 0,
+              "error": null
+            }
+          ],
+          "gaps": [
+            "No independent source for revenue figures"
+          ],
+          "claimsWithoutEvidence": [
+            "C2",
+            "C3"
+          ],
+          "droppedEvidenceCount": 3,
+          "ignoredSourceCount": 1,
+          "needsHumanReview": false,
+          "reviewReasons": [],
+          "warnings": [
+            "1 sources were about a different entity and were ignored.",
+            "Some evidence comes from sources older than the freshness window."
+          ]
+        },
+        "verification": {
+          "pitchId": "7",
+          "results": [
+            {
+              "claimId": "C1",
+              "claimText": "The pitch claims 12,000 farmers onboarded.",
+              "category": "TRACTION",
+              "status": "PARTIALLY_VERIFIED",
+              "independentlyVerified": true,
+              "supportingEvidenceIds": [
+                "E2",
+                "E3"
+              ],
+              "contradictingEvidenceIds": [],
+              "finding": "TechCrunch reports about 9,000 farmers versus 12,000 claimed.",
+              "confidence": 0.85,
+              "evidenceOutdated": false,
+              "notes": []
+            },
+            {
+              "claimId": "C2",
+              "claimText": "The pitch claims market leadership.",
+              "category": "COMPETITION",
+              "status": "NOT_FOUND",
+              "independentlyVerified": false,
+              "supportingEvidenceIds": [],
+              "contradictingEvidenceIds": [],
+              "finding": "No comparative source.",
+              "confidence": 0.9,
+              "evidenceOutdated": false,
+              "notes": []
+            },
+            {
+              "claimId": "C3",
+              "claimText": "The pitch claims Rs 1.2 Cr ARR.",
+              "category": "FINANCIAL",
+              "status": "NOT_FOUND",
+              "independentlyVerified": false,
+              "supportingEvidenceIds": [],
+              "contradictingEvidenceIds": [],
+              "finding": "No revenue source.",
+              "confidence": 0.9,
+              "evidenceOutdated": false,
+              "notes": []
+            }
+          ],
+          "summary": {
+            "VERIFIED": 0,
+            "PARTIALLY_VERIFIED": 1,
+            "UNVERIFIED": 0,
+            "CONTRADICTED": 0,
+            "NOT_FOUND": 2
+          },
+          "needsHumanReview": false,
+          "reviewReasons": [],
+          "warnings": []
+        }
+      }
+    }
+  },
+  "response": {
+    "success": true,
+    "agent": "ANALYSIS_AGENT",
+    "data": {
+      "pitchId": "7",
+      "companyName": "Krishi AI",
+      "brief": {
+        "companyOverview": [
+          {
+            "field": "Company",
+            "value": "Krishi AI",
+            "provenance": "PITCH",
+            "source": "Pitch"
+          },
+          {
+            "field": "One-liner",
+            "value": "AI crop advisory for Indian farmers",
+            "provenance": "PITCH",
+            "source": "Pitch"
+          },
+          {
+            "field": "Website",
+            "value": "www.krishiai.in",
+            "provenance": "PITCH",
+            "source": "Pitch"
+          },
+          {
+            "field": "Sector",
+            "value": "AgriTech",
+            "provenance": "PITCH",
+            "source": "Pitch"
+          },
+          {
+            "field": "Stage",
+            "value": "Seed",
+            "provenance": "PITCH",
+            "source": "Pitch"
+          },
+          {
+            "field": "Founders",
+            "value": "Ananya Rao (CEO)",
+            "provenance": "PITCH",
+            "source": "Pitch"
+          },
+          {
+            "field": "Raising",
+            "value": "$2M",
+            "provenance": "PITCH",
+            "source": "Pitch"
+          },
+          {
+            "field": "Instrument",
+            "value": "SAFE",
+            "provenance": "PITCH",
+            "source": "Pitch"
+          }
+        ],
+        "executiveSummary": [
+          {
+            "statement": "Krishi AI offers AI crop advisory and is raising a $2M seed on a SAFE.",
+            "citations": [
+              "C1"
+            ],
+            "provenance": "PITCH"
+          },
+          {
+            "statement": "TechCrunch reports a $1.5M seed round led by Omnivore.",
+            "citations": [
+              "E1"
+            ],
+            "provenance": "EXTERNAL"
+          },
+          {
+            "statement": "The company appears well positioned.",
+            "citations": [],
+            "provenance": "AI_INFERENCE"
+          },
+          {
+            "statement": "Bogus cite.",
+            "citations": [],
+            "provenance": "AI_INFERENCE"
+          }
+        ],
+        "claimsMatrix": [
+          {
+            "claimId": "C1",
+            "claim": "The pitch claims 12,000 farmers onboarded.",
+            "category": "TRACTION",
+            "status": "PARTIALLY_VERIFIED",
+            "independentlyVerified": true,
+            "finding": "TechCrunch reports about 9,000 farmers versus 12,000 claimed.",
+            "evidenceOutdated": false,
+            "supporting": [
+              {
+                "evidenceId": "E2",
+                "sourceTitle": "Krishi AI raises seed",
+                "sourceUrl": "https://techcrunch.com/2026/05/krishi-ai-seed",
+                "publishedAt": "2026-05-10T00:00:00Z",
+                "sourceType": "EXTERNAL"
+              },
+              {
+                "evidenceId": "E3",
+                "sourceTitle": "About Krishi AI",
+                "sourceUrl": "https://www.krishiai.in/about",
+                "publishedAt": null,
+                "sourceType": "COMPANY"
+              }
+            ],
+            "contradicting": []
+          },
+          {
+            "claimId": "C2",
+            "claim": "The pitch claims market leadership.",
+            "category": "COMPETITION",
+            "status": "NOT_FOUND",
+            "independentlyVerified": false,
+            "finding": "No comparative source.",
+            "evidenceOutdated": false,
+            "supporting": [],
+            "contradicting": []
+          },
+          {
+            "claimId": "C3",
+            "claim": "The pitch claims Rs 1.2 Cr ARR.",
+            "category": "FINANCIAL",
+            "status": "NOT_FOUND",
+            "independentlyVerified": false,
+            "finding": "No revenue source.",
+            "evidenceOutdated": false,
+            "supporting": [],
+            "contradicting": []
+          }
+        ],
+        "tractionMetrics": [
+          {
+            "metric": "Farmers onboarded",
+            "value": "12,000",
+            "period": null,
+            "sourceRef": "d1:p2"
+          }
+        ],
+        "market": [],
+        "competition": [
+          {
+            "statement": "A 2023 article names FarmWise as a competitor.",
+            "citations": [
+              "E3"
+            ],
+            "provenance": "COMPANY"
+          }
+        ],
+        "competitors": [
+          {
+            "name": "FarmWise",
+            "description": "AI crop advisory",
+            "sourceIds": [
+              "S3"
+            ]
+          }
+        ],
+        "founders": [],
+        "fundingHistory": [
+          {
+            "statement": "TechCrunch reports a $1.5M seed.",
+            "citations": [
+              "E1"
+            ],
+            "provenance": "EXTERNAL"
+          }
+        ],
+        "risks": [
+          {
+            "risk": "Customer count could not be independently confirmed.",
+            "category": "TRACTION",
+            "citations": [
+              "C1",
+              "E2"
+            ],
+            "provenance": "AI_INFERENCE"
+          }
+        ],
+        "openQuestions": [
+          {
+            "question": "No independent evidence was found for this claim — can the founder provide support? (The pitch claims market leadership.)",
+            "reason": "No comparative source.",
+            "citations": [
+              "C2"
+            ],
+            "origin": "VERIFICATION"
+          },
+          {
+            "question": "No independent evidence was found for this claim — can the founder provide support? (The pitch claims Rs 1.2 Cr ARR.)",
+            "reason": "No revenue source.",
+            "citations": [
+              "C3"
+            ],
+            "origin": "VERIFICATION"
+          },
+          {
+            "question": "Not covered in the pitch: Burn rate / runway not disclosed",
+            "reason": null,
+            "citations": [],
+            "origin": "MISSING_INFO"
+          },
+          {
+            "question": "Research gap: No independent source for revenue figures",
+            "reason": null,
+            "citations": [],
+            "origin": "RESEARCH_GAP"
+          },
+          {
+            "question": "What is monthly churn among paying farmers?",
+            "reason": "Not disclosed",
+            "citations": [],
+            "origin": "ANALYSIS"
+          }
+        ],
+        "sources": [
+          {
+            "sourceId": "S1",
+            "title": "Krishi AI raises seed",
+            "url": "https://techcrunch.com/2026/05/krishi-ai-seed",
+            "sourceType": "EXTERNAL",
+            "publishedAt": "2026-05-10T00:00:00Z",
+            "retrievedAt": "2026-10-03T00:00:00Z",
+            "possiblyOutdated": false
+          },
+          {
+            "sourceId": "S2",
+            "title": "About Krishi AI",
+            "url": "https://www.krishiai.in/about",
+            "sourceType": "COMPANY",
+            "publishedAt": null,
+            "retrievedAt": "2026-10-03T00:00:00Z",
+            "possiblyOutdated": false
+          },
+          {
+            "sourceId": "S3",
+            "title": "Agritech startups to watch",
+            "url": "https://yourstory.com/2023/krishi-ai",
+            "sourceType": "EXTERNAL",
+            "publishedAt": "2023-01-05T00:00:00Z",
+            "retrievedAt": "2026-10-03T00:00:00Z",
+            "possiblyOutdated": true
+          }
+        ]
+      },
+      "markdown": "# Research Brief: Krishi AI\n\nLegend: 🟣 Pitch · 🔵 Company · 🟢 External · 🟠 AI inference\n\n## Summary\n\n- Krishi AI offers AI crop advisory and is raising a $2M seed on a SAFE. [C1] — 🟣 Pitch\n- TechCrunch reports a $1.5M seed round led by Omnivore. [E1] — 🟢 External\n- The company appears well positioned. — 🟠 AI inference\n- Bogus cite. — 🟠 AI inference\n\n## Company overview\n\n| Field | Information | Source |\n|---|---|---|\n| Company | Krishi AI | 🟣 Pitch |\n| One-liner | AI crop advisory for Indian farmers | 🟣 Pitch |\n| Website | www.krishiai.in | 🟣 Pitch |\n| Sector | AgriTech | 🟣 Pitch |\n| Stage | Seed | 🟣 Pitch |\n| Founders | Ananya Rao (CEO) | 🟣 Pitch |\n| Raising | $2M | 🟣 Pitch |\n| Instrument | SAFE | 🟣 Pitch |\n\n## Claims from the pitch\n\n| # | Pitch claim | Status | What the evidence shows | Sources |\n|---|---|---|---|---|\n| C1 | The pitch claims 12,000 farmers onboarded. | 🟡 Partially verified | TechCrunch reports about 9,000 farmers versus 12,000 claimed. | [E2](https://techcrunch.com/2026/05/krishi-ai-seed), [E3](https://www.krishiai.in/about) |\n| C2 | The pitch claims market leadership. | ❔ Not found | No comparative source. | — |\n| C3 | The pitch claims Rs 1.2 Cr ARR. | ❔ Not found | No revenue source. | — |\n\n## Metrics stated in the pitch\n\n| Metric | Value | Period |\n|---|---|---|\n| Farmers onboarded | 12,000 | — |\n\n## Competition\n\n- A 2023 article names FarmWise as a competitor. [E3] — 🔵 Company\n\n**Competitors identified:** FarmWise\n\n## Funding history\n\n- TechCrunch reports a $1.5M seed. [E1] — 🟢 External\n\n## Risks and considerations (🟠 AI inference)\n\n- **Traction:** Customer count could not be independently confirmed. [C1, E2]\n\n## Open questions for the investor\n\n1. No independent evidence was found for this claim — can the founder provide support? (The pitch claims market leadership.)\n2. No independent evidence was found for this claim — can the founder provide support? (The pitch claims Rs 1.2 Cr ARR.)\n3. Not covered in the pitch: Burn rate / runway not disclosed\n4. Research gap: No independent source for revenue figures\n5. What is monthly churn among paying farmers?\n\n## Sources\n\n- **S1** [Krishi AI raises seed](https://techcrunch.com/2026/05/krishi-ai-seed) — External, 2026-05-10\n- **S2** [About Krishi AI](https://www.krishiai.in/about) — Company, date unknown\n- **S3** [Agritech startups to watch](https://yourstory.com/2023/krishi-ai) — External, 2023-01-05 ⚠️ may be outdated\n\n---\n_This brief organises information from the pitch and public sources. It contains no investment recommendation; the investment decision rests with the investor. Items marked AI inference are the model's synthesis and should be checked._\n",
+      "claimStatusSummary": {
+        "PARTIALLY_VERIFIED": 1,
+        "NOT_FOUND": 2
+      },
+      "disclaimer": "This brief organises information from the pitch and public sources. It contains no investment recommendation; the investment decision rests with the investor. Items marked AI inference are the model's synthesis and should be checked.",
+      "needsHumanReview": false,
+      "reviewReasons": [],
+      "warnings": [
+        "1 citations to unknown IDs were removed.",
+        "2 statements have no valid citation and are labelled AI inference."
+      ]
+    },
+    "error": null,
+    "meta": {
+      "executionId": "102:analysis:6",
+      "traceId": "trace-102",
+      "schemaVersion": "1.0",
+      "model": "fake-model",
+      "attempts": 1,
+      "promptTokens": 100,
+      "completionTokens": 20,
+      "latencyMs": 1
+    }
+  }
+}

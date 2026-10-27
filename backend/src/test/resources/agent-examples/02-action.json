@@ -1,0 +1,95 @@
+{
+  "request": {
+    "method": "POST",
+    "path": "/agents/action",
+    "body": {
+      "executionId": "102:action:2",
+      "traceId": "trace-102",
+      "input": {
+        "workflowId": "102",
+        "event": "PITCH_DETECTED",
+        "emailId": "email_1",
+        "pitch": {
+          "pitchId": "7",
+          "companyName": "Krishi AI"
+        }
+      }
+    }
+  },
+  "response": {
+    "success": true,
+    "agent": "ACTION_AGENT",
+    "data": {
+      "workflowId": "102",
+      "event": "PITCH_DETECTED",
+      "actions": [
+        {
+          "actionId": "0fdbdc19d8bce015",
+          "type": "GMAIL_ADD_LABELS",
+          "target": "gmail:message:email_1",
+          "payload": {
+            "labels": [
+              "Pitsch/Pitch"
+            ],
+            "scope": "message",
+            "createIfMissing": true
+          },
+          "requiresApproval": false,
+          "approved": true,
+          "dependsOn": [],
+          "reason": "Email classified as a new pitch."
+        },
+        {
+          "actionId": "d439581490c1dfaf",
+          "type": "SHEETS_UPSERT_ROW",
+          "target": "sheet:pipeline",
+          "payload": {
+            "keyColumn": "Pitch ID",
+            "columns": [
+              "Pitch ID",
+              "Company",
+              "Sector",
+              "Stage",
+              "Founder",
+              "Founder Email",
+              "Ask",
+              "Website",
+              "Status",
+              "Verified",
+              "Partially verified",
+              "Unverified / not found",
+              "Contradicted",
+              "Open questions",
+              "Brief",
+              "Meeting",
+              "Last updated"
+            ],
+            "values": {
+              "Pitch ID": "7",
+              "Company": "Krishi AI",
+              "Status": "NEW",
+              "Last updated": "2026-10-03T00:00:00+00:00"
+            }
+          },
+          "requiresApproval": false,
+          "approved": true,
+          "dependsOn": [],
+          "reason": "Keep the deal pipeline sheet current."
+        }
+      ],
+      "blockedActionIds": [],
+      "warnings": []
+    },
+    "error": null,
+    "meta": {
+      "executionId": "102:action:2",
+      "traceId": "trace-102",
+      "schemaVersion": "1.0",
+      "model": null,
+      "attempts": 0,
+      "promptTokens": 0,
+      "completionTokens": 0,
+      "latencyMs": 0
+    }
+  }
+}
