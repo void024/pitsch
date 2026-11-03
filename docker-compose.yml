@@ -1,0 +1,103 @@
+# Local production-like stack: PostgreSQL, MinIO (S3), AI service, backend, frontend (nginx).
+#   ./scripts/gen-dev-env.sh && docker compose up --build    → http://localhost:3000
+# Not a production deployment: plain HTTP, local volumes, PITSCH_MODE demo/development (see docs/DEPLOYMENT.md).
+name: pitsch
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: pitsch
+      POSTGRES_USER: pitsch
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run scripts/gen-dev-env.sh}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pitsch -d pitsch"]
+      interval: 5s
+      retries: 20
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address :9001
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-pitsch}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?run scripts/gen-dev-env.sh}
+    ports: ["9000:9000", "9001:9001"]   # 9000 serves presigned downloads to the browser
+    volumes: [minio:/data]
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      retries: 20
+
+  minio-init:
+    image: minio/mc:latest
+    depends_on: { minio: { condition: service_healthy } }
+    entrypoint: >
+      sh -c "mc alias set local http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD} &&
+             mc mb --ignore-existing local/pitsch-files && mc anonymous set none local/pitsch-files"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-pitsch}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+
+  clamav:
+    image: clamav/clamav:stable
+    profiles: [scan]   # docker compose --profile scan up  (then set MALWARE_SCANNER=clamav)
+
+  ai-service:
+    build: ./ai-service
+    environment:
+      PITSCH_MODE: development   # internal service; token still enforced because it is set
+      AI_SERVICE_TOKEN: ${AI_SERVICE_TOKEN:?run scripts/gen-dev-env.sh}
+      LLM_PROVIDER: ${LLM_PROVIDER:-gemini}
+      LLM_MODEL: ${LLM_MODEL:-gemini-flash-latest}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
+    expose: ["8000"]
+
+  backend:
+    build: ./backend
+    depends_on:
+      postgres: { condition: service_healthy }
+      minio-init: { condition: service_completed_successfully }
+      ai-service: { condition: service_started }
+    environment:
+      PITSCH_MODE: ${PITSCH_MODE:-demo}
+      DB_URL: jdbc:postgresql://postgres:5432/pitsch
+      DB_USERNAME: pitsch
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DDL_AUTO: validate
+      FRONTEND_URL: http://localhost:3000
+      PUBLIC_API_URL: http://localhost:3000
+      CORS_ALLOWED_ORIGINS: http://localhost:3000
+      JWT_SECRET: ${JWT_SECRET:?run scripts/gen-dev-env.sh}
+      PITSCH_ENCRYPTION_KEYS: ${PITSCH_ENCRYPTION_KEYS:?run scripts/gen-dev-env.sh}
+      AI_SERVICE_URL: http://ai-service:8000
+      AI_SERVICE_TOKEN: ${AI_SERVICE_TOKEN}
+      STORAGE_PROVIDER: s3
+      S3_BUCKET: pitsch-files
+      S3_REGION: us-east-1
+      S3_ENDPOINT: http://minio:9000
+      S3_PUBLIC_ENDPOINT: http://localhost:9000
+      S3_PATH_STYLE: "true"
+      S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-pitsch}
+      S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+      MAIL_PROVIDER: log
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: http://localhost:3000/api/v1/integrations/google/callback
+      FORWARD_HEADERS_STRATEGY: framework
+    expose: ["8080"]
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_DEMO_MODE: ${VITE_DEMO_MODE:-true}
+    depends_on: [backend]
+    environment:
+      BACKEND_URL: http://backend:8080
+    ports: ["3000:8080"]
+
+volumes:
+  pgdata:
+  minio:

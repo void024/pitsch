@@ -1,0 +1,41 @@
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# IDE settings
+.idea/
+.vscode/
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# JavaScript / TypeScript dependencies and builds
+node_modules/
+dist/
+coverage/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Java / Maven / Gradle build outputs
+target/
+.gradle/
+*.class
+
+# Python virtual environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Logs and temporary files
+*.log
