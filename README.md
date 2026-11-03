@@ -622,4 +622,279 @@ Once Pitsch is running, follow this journey:
 | 07 | Review the generated investment brief and supporting evidence. |
 | 08 | Plan a meeting using available calendar slots. |
 | 09 | Draft, edit, and approve an email response. |
-| 10 | Review
+| 10 | Review executed operations in Settings → Audit Log. |
+
+---
+
+## 09. Testing & Quality Assurance
+
+Pitsch includes automated testing across all three services.
+
+### Frontend
+
+```bash
+cd frontend
+
+npm run lint
+npm run build
+npm test
+npm run e2e
+```
+
+### Backend
+
+```bash
+cd backend
+
+./mvnw verify
+```
+
+For PostgreSQL-backed testing:
+
+```bash
+TEST_DB_URL=jdbc:postgresql://localhost:5432/pitsch_test
+TEST_DDL_AUTO=validate
+```
+
+### AI Service
+
+```bash
+cd ai-service
+
+python -m pytest -q
+```
+
+Run AI evaluation suites:
+
+```bash
+python -m evals.run_evals
+```
+
+For live AI quality evaluation:
+
+```bash
+python -m evals.run_evals --suite live
+```
+
+Evaluation metrics include accuracy, false-SUPPORTED rate, latency, and cost.
+
+### Continuous Integration
+
+The CI pipeline includes:
+
+- Frontend linting, build, unit tests, and E2E tests.
+- Backend tests on H2 and PostgreSQL.
+- AI service tests and evaluation suites.
+- Secret scanning and dependency audits.
+- Trivy container security scanning.
+- CodeQL analysis.
+- Docker image builds.
+
+No standard automated test requires live Google, LLM, search, or Stripe credentials.
+
+---
+
+## 10. Repository Structure
+
+```text
+pitsch/
+│
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── styles/
+│   │   ├── lib/
+│   │   └── test/
+│   ├── e2e/
+│   └── package.json
+│
+├── backend/
+│   ├── src/
+│   │   ├── main/
+│   │   └── test/
+│   └── pom.xml
+│
+├── ai-service/
+│   ├── app/
+│   │   ├── agents/
+│   │   │   ├── classifier/
+│   │   │   ├── document/
+│   │   │   ├── research/
+│   │   │   ├── verification/
+│   │   │   ├── analysis/
+│   │   │   ├── calendar/
+│   │   │   ├── email_response/
+│   │   │   └── action/
+│   │   ├── api/
+│   │   ├── core/
+│   │   └── schemas/
+│   ├── evals/
+│   ├── tests/
+│   └── requirements.txt
+│
+├── docs/
+│   ├── ARCHITECTURE.md
+│   ├── AI_ARCHITECTURE.md
+│   ├── ARCHITECTURAL_DECISIONS.md
+│   ├── SECURITY.md
+│   ├── DATA_SECURITY.md
+│   ├── PRIVACY.md
+│   ├── INTEGRATIONS.md
+│   ├── DEPLOYMENT.md
+│   ├── OPERATIONS.md
+│   └── API.md
+│
+├── scripts/
+├── docker-compose.yml
+├── start-dev.sh
+├── start-dev.bat
+└── README.md
+```
+
+---
+
+## 11. Deployment & Operations
+
+Pitsch is designed around containerized deployment.
+
+The production deployment consists of:
+
+| Component | Responsibility |
+|:---|:---|
+| Frontend Container | Serves the React application through Nginx. |
+| Backend Container | Handles application APIs, authentication, workflows, and integrations. |
+| AI Service Container | Executes specialized AI agents and research operations. |
+| PostgreSQL | Stores application data, workflow state, jobs, and audit records. |
+| S3-Compatible Storage | Stores pitch decks and uploaded documents. |
+| SMTP | Handles application email delivery. |
+| Google Cloud | Provides Gmail, Calendar, and Sheets integrations. |
+| Optional Stripe | Supports subscription checkout, billing portal, and webhooks. |
+
+Production deployment requires secure configuration, managed database infrastructure, HTTPS, and properly configured external services.
+
+See [Deployment Documentation](docs/DEPLOYMENT.md) and [Operations Runbook](docs/OPERATIONS.md).
+
+---
+
+## 12. Current Limitations
+
+Some capabilities have known limitations and are documented for transparency.
+
+- Gmail integration requires Google OAuth verification before unrestricted public use.
+- Rate limiting is per application instance; distributed rate limiting is a future improvement.
+- Malware scanning through ClamAV is optional and disabled by default.
+- Scanned image-only pitch decks do not currently undergo OCR.
+- Follow-up matching uses deterministic candidates and classifier judgement rather than embeddings.
+- AI quality depends on the selected model and external research provider.
+- Live evaluation datasets are synthetic and relatively small.
+- Deployment currently uses logical multi-tenancy within a single database.
+- Mobile and web push notifications are not implemented; in-app and email notifications are supported.
+
+---
+
+## 13. Roadmap
+
+| Planned Improvement | Description |
+|:---|:---|
+| OCR | Support scanned and image-only pitch decks. |
+| Research Expansion | Introduce a second search provider for independent cross-checking. |
+| Semantic Matching | Improve follow-up identification using embeddings. |
+| Microsoft 365 | Add Outlook and Microsoft Calendar integrations. |
+| CRM Integration | Connect investment workflows with Affinity and HubSpot. |
+| Push Notifications | Introduce web and mobile push notifications. |
+| Enterprise Identity | Add SAML/OIDC SSO and SCIM provisioning. |
+| Distributed Infrastructure | Introduce Redis-backed distributed rate limiting. |
+
+---
+
+## 14. Documentation
+
+Explore the engineering documentation for more details.
+
+| Document | Description |
+|:---|:---|
+| [System Architecture](docs/ARCHITECTURE.md) | Overall system architecture and service boundaries. |
+| [AI Architecture](docs/AI_ARCHITECTURE.md) | Multi-agent architecture and execution pipeline. |
+| [Architectural Decisions](docs/ARCHITECTURAL_DECISIONS.md) | Important engineering decisions and trade-offs. |
+| [Security](docs/SECURITY.md) | Application and infrastructure security. |
+| [Data Security](docs/DATA_SECURITY.md) | Data protection and security controls. |
+| [Privacy](docs/PRIVACY.md) | Privacy and data lifecycle management. |
+| [Integrations](docs/INTEGRATIONS.md) | External provider integrations. |
+| [API Reference](docs/API.md) | API endpoints and usage. |
+| [Deployment](docs/DEPLOYMENT.md) | Production deployment instructions. |
+| [Operations](docs/OPERATIONS.md) | Monitoring and operational guidelines. |
+| [Contributing](docs/CONTRIBUTING.md) | Contribution guidelines. |
+| [Production Audit](docs/PRODUCTION_AUDIT.md) | Production readiness audit. |
+
+---
+
+## 15. Team
+
+Pitsch is built through collaboration across frontend engineering, backend engineering, and AI development.
+
+<table>
+<tr>
+<th align="left">Contributor</th>
+<th align="left">Engineering Focus</th>
+<th align="left">Responsibilities</th>
+</tr>
+<tr>
+<td>
+
+<a href="https://github.com/void024"><strong>Ayush Kumawat</strong></a>
+
+</td>
+<td>
+
+<strong>Backend & AI Engineering</strong>
+
+</td>
+<td>
+
+Designed and developed the Spring Boot backend, REST APIs, authentication, authorization, PostgreSQL architecture, workflow orchestration, external integrations, security, multi-agent AI architecture, LLM integrations, agent orchestration, document intelligence, automated research, claim verification, and investment analysis.
+
+</td>
+</tr>
+<tr>
+<td>
+
+<strong>Yash Kamble</strong>
+
+</td>
+<td>
+
+<strong>Frontend Engineering</strong>
+
+</td>
+<td>
+
+Developed the React frontend, dashboard, authentication interfaces, pitch management, workflow interfaces, notifications, investment briefs, and frontend API integration.
+
+</td>
+</tr>
+</table>
+
+---
+
+<div align="center">
+
+<img src="https://readme-typing-svg.demolab.com?font=Inter&weight=600&size=22&duration=3000&pause=1000&color=38BDF8&center=true&vCenter=true&width=750&height=45&lines=Intelligence+Behind+Every+Opportunity.;Evidence+Behind+Every+Insight.;Humans+Behind+Every+Decision." alt="Pitsch closing statement"/>
+
+<br/><br/>
+
+**PITSCH**
+
+<sub>AI-POWERED INVESTMENT WORKFLOW AUTOMATION</sub>
+
+<br/><br/>
+
+<a href="https://github.com/void024">
+<img src="https://img.shields.io/badge/BUILT%20BY-AYUSH%20KUMAWAT-1457B8?style=for-the-badge&logo=github&logoColor=white"/>
+</a>
+
+<br/><br/>
+
+<img src="https://capsule-render.vercel.app/api?type=waving&height=140&section=footer&color=0:38BDF8,30:168BEB,65:1457B8,100:06152E" width="100%" alt="Pitsch blue footer"/>
+
+</div>
